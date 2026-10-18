@@ -1,3 +1,8 @@
+/**
+ * Sentinel Road Telemetry Engine
+ * Task 4: Real-Time Severity AI Prediction Engine & HUD Telemetry
+ */
+
 // ==========================================================================
 // 12-Feature Model Payload State
 // ==========================================================================
@@ -23,6 +28,9 @@ const simState = {
     targetCurveBend: 0,
     cameraMode: 'cockpit',
     audioActive: false,
+    liveSync: true,
+    predicting: false,
+    lastSeverity: 'Low',
     fps: 60
 };
 
@@ -185,7 +193,6 @@ class RoadRenderer {
         ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, width, horizonY);
 
-        // Stars at night
         if (modelFeatures.lighting === 'night' && modelFeatures.weather !== 'foggy') {
             ctx.fillStyle = '#ffffff';
             for (let star of this.stars) {
@@ -197,7 +204,6 @@ class RoadRenderer {
             ctx.globalAlpha = 1.0;
         }
 
-        // Celestial body (Sun/Moon)
         if (modelFeatures.lighting === 'daylight' && modelFeatures.weather !== 'foggy') {
             ctx.save();
             ctx.shadowBlur = 40;
@@ -271,7 +277,6 @@ class RoadRenderer {
         const leftBottomX = centerX - bottomRoadWidth / 2;
         const rightBottomX = centerX + bottomRoadWidth / 2;
 
-        // Asphalt
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(leftTopX, horizonY);
@@ -299,7 +304,6 @@ class RoadRenderer {
             ctx.fill();
         }
 
-        // Road edge lines
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 4;
         ctx.beginPath();
@@ -312,7 +316,6 @@ class RoadRenderer {
         ctx.lineTo(rightBottomX, height);
         ctx.stroke();
 
-        // Dashed lane lines
         if (lanes > 1) {
             for (let laneIdx = 1; laneIdx < lanes; laneIdx++) {
                 const laneRatio = laneIdx / lanes;
@@ -448,13 +451,11 @@ class MiniRadar {
         ctx.lineTo(w, cy);
         ctx.stroke();
 
-        // Vehicle marker
         ctx.fillStyle = '#00f59b';
         ctx.beginPath();
         ctx.arc(cx, cy, 3, 0, Math.PI * 2);
         ctx.fill();
 
-        // Road curve trajectory
         ctx.strokeStyle = '#00f2fe';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -466,7 +467,7 @@ class MiniRadar {
 }
 
 // ==========================================================================
-// Web Audio Synthesizer
+// Web Audio Synthesizer & Sound FX Chimes
 // ==========================================================================
 class AudioEngine {
     constructor() {
@@ -503,6 +504,47 @@ class AudioEngine {
         this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.1);
     }
 
+    playSeverityChime(severity) {
+        if (!this.ctx || !simState.audioActive || this.ctx.state !== 'running') return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const chimeGain = this.ctx.createGain();
+            osc.connect(chimeGain);
+            chimeGain.connect(this.ctx.destination);
+
+            if (severity === 'Low') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.18); // G5
+                chimeGain.gain.setValueAtTime(0.08, now);
+                chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (severity === 'Medium') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now); // A4
+                osc.frequency.setValueAtTime(554.37, now + 0.12); // C#5
+                chimeGain.gain.setValueAtTime(0.1, now);
+                chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else {
+                // High Severity Alarm
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(700, now);
+                osc.frequency.setValueAtTime(350, now + 0.1);
+                osc.frequency.setValueAtTime(700, now + 0.2);
+                chimeGain.gain.setValueAtTime(0.12, now);
+                chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        } catch (e) {
+            console.warn('Audio chime notice:', e);
+        }
+    }
+
     toggle() {
         if (!this.ctx) {
             this.init();
@@ -523,7 +565,7 @@ class AudioEngine {
 }
 
 // ==========================================================================
-// Master Cockpit Synchronizer
+// Master Cockpit Synchronizer & Prediction Controller
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     const roadRenderer = new RoadRenderer('roadCanvas');
@@ -542,16 +584,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const hudAccidentStat = document.getElementById('hud-accident-stat');
     const hudSignStat = document.getElementById('hud-sign-stat');
     const advisoryIcon = document.getElementById('advisory-icon');
-    const advisoryTitle = document.getElementById('advisory-title');
     const advisoryDesc = document.getElementById('advisory-desc');
     const lblActiveWeather = document.getElementById('lbl-active-weather');
     const lblActiveRoad = document.getElementById('lbl-active-road');
+    const lblActiveSeverity = document.getElementById('lbl-active-severity');
+    const lblLatency = document.getElementById('lbl-latency');
     const svgCurveArrow = document.getElementById('svg-curve-arrow');
-    const signCurveText = document.getElementById('sign-curve-text');
     const valTime = document.getElementById('val-time');
+    const valInferenceTime = document.getElementById('val-inference-time');
     const signSchoolBox = document.getElementById('sign-school-box');
     const rightSignsPanel = document.getElementById('right-signs-panel');
-    const indicatorSignState = document.getElementById('indicator-sign-state');
     const jsonCodePreview = document.getElementById('json-code-preview');
     const jsonDrawer = document.getElementById('json-drawer');
     const btnToggleJson = document.getElementById('btn-toggle-json');
@@ -561,6 +603,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const stepperAccidentDesc = document.getElementById('stepper-accident-desc');
     const badgeHazardLevel = document.getElementById('badge-hazard-level');
     const hazardMeterBars = document.getElementById('hazard-meter-bars');
+
+    // Prediction Trigger Elements
+    const btnRunPredict = document.getElementById('btn-run-predict');
+    const switchLiveSync = document.getElementById('switch-live-sync');
+    const predictionStatusDot = document.getElementById('prediction-status-dot');
+    const predictionStatusText = document.getElementById('prediction-status-text');
+    const indicatorAiState = document.getElementById('indicator-ai-state');
+
+    // Severity Display Elements
+    const severityCard = document.getElementById('severity-card');
+    const sevGaugeRing = document.getElementById('sev-gauge-ring');
+    const sevValTitle = document.getElementById('sev-val-title');
+    const sevSubtext = document.getElementById('sev-subtext');
+    const probNumLow = document.getElementById('prob-num-low');
+    const probBarLow = document.getElementById('prob-bar-low');
+    const probNumMed = document.getElementById('prob-num-med');
+    const probBarMed = document.getElementById('prob-bar-med');
+    const probNumHigh = document.getElementById('prob-num-high');
+    const probBarHigh = document.getElementById('prob-bar-high');
+    const riskChipsWrap = document.getElementById('risk-chips-wrap');
 
     // Tab Navigation
     const tabButtons = document.querySelectorAll('.cockpit-tab-btn');
@@ -591,53 +653,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 1. Road Type Controller
+    // 1. Road Type
     bindPillGroup('#ctrl-road-type', (val) => {
         modelFeatures.road_type = val;
         updateRoadDisplay();
-        syncAll();
+        onFeatureChange();
     });
 
-    // 2. Curvature Controller
+    // 2. Curvature
     bindPillGroup('#ctrl-curvature', (val) => {
         modelFeatures.curvature_bin = val;
         updateCurvatureDisplay();
-        syncAll();
+        onFeatureChange();
     });
 
-    // 3. Speed Limit Controller
+    // 3. Speed Limit
     bindPillGroup('#ctrl-speed-pills', (val) => {
         modelFeatures.speed_limit = parseInt(val, 10);
         updateSpeedDisplay();
-        syncAll();
+        onFeatureChange();
     });
 
-    // 4. Lanes Controller
+    // 4. Lanes
     bindPillGroup('#ctrl-lanes', (val) => {
         modelFeatures.num_lanes = parseInt(val, 10);
         hudLanes.textContent = `${modelFeatures.num_lanes} ACTIVE`;
-        syncAll();
+        onFeatureChange();
     });
 
-    // 5. Lighting Controller
+    // 5. Lighting
     bindPillGroup('#ctrl-lighting', (val) => {
         modelFeatures.lighting = val;
         updateLightingDisplay();
-        syncAll();
+        onFeatureChange();
     });
 
-    // 6. Weather Controller
+    // 6. Weather
     bindPillGroup('#ctrl-weather', (val) => {
         modelFeatures.weather = val;
         updateWeatherDisplay();
-        syncAll();
+        onFeatureChange();
     });
 
-    // 7. Time of Day Controller
+    // 7. Time of Day
     bindPillGroup('#ctrl-time-of-day', (val) => {
         modelFeatures.time_of_day = val;
         updateTimeDisplay();
-        syncAll();
+        onFeatureChange();
     });
 
     // 8. Road Signs Present Switch
@@ -645,31 +707,25 @@ document.addEventListener('DOMContentLoaded', () => {
     switchRoadSigns.addEventListener('change', (e) => {
         modelFeatures.road_signs_present = e.target.checked;
         if (modelFeatures.road_signs_present) {
-            rightSignsPanel.classList.remove('signs-hidden');
             hudSignStat.textContent = 'POSTED';
-            indicatorSignState.textContent = 'ACTIVE';
-            indicatorSignState.className = 'live-indicator';
         } else {
-            rightSignsPanel.classList.add('signs-hidden');
             hudSignStat.textContent = 'ABSENT';
-            indicatorSignState.textContent = 'UNMARKED';
-            indicatorSignState.className = 'live-indicator text-accent';
         }
-        syncAll();
+        onFeatureChange();
     });
 
     // 9. Public Road Switch
     const switchPublicRoad = document.getElementById('switch-public-road');
     switchPublicRoad.addEventListener('change', (e) => {
         modelFeatures.public_road = e.target.checked;
-        syncAll();
+        onFeatureChange();
     });
 
     // 10. Holiday Switch
     const switchHoliday = document.getElementById('switch-holiday');
     switchHoliday.addEventListener('change', (e) => {
         modelFeatures.holiday = e.target.checked;
-        syncAll();
+        onFeatureChange();
     });
 
     // 11. School Season Switch
@@ -681,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             signSchoolBox.classList.remove('active');
         }
-        syncAll();
+        onFeatureChange();
     });
 
     // 12. Prior Accidents Stepper (0 to 7)
@@ -692,7 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modelFeatures.num_reported_accidents > 0) {
             modelFeatures.num_reported_accidents--;
             updateAccidentDisplay();
-            syncAll();
+            onFeatureChange();
         }
     });
 
@@ -700,7 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modelFeatures.num_reported_accidents < 7) {
             modelFeatures.num_reported_accidents++;
             updateAccidentDisplay();
-            syncAll();
+            onFeatureChange();
         }
     });
 
@@ -722,7 +778,6 @@ document.addEventListener('DOMContentLoaded', () => {
         jsonDrawer.classList.toggle('open');
     });
 
-    // Copy JSON to clipboard on click
     jsonCodePreview.addEventListener('click', () => {
         navigator.clipboard.writeText(JSON.stringify(modelFeatures, null, 2)).then(() => {
             const notice = document.getElementById('copy-notice');
@@ -731,6 +786,198 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Live Sync Toggle
+    switchLiveSync.addEventListener('change', (e) => {
+        simState.liveSync = e.target.checked;
+        if (simState.liveSync) {
+            triggerPrediction();
+        }
+    });
+
+    // Manual Run Prediction Button
+    btnRunPredict.addEventListener('click', () => {
+        triggerPrediction();
+    });
+
+    // Feature Change Handler
+    let debounceTimer = null;
+    function onFeatureChange() {
+        syncJson();
+        if (simState.liveSync) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                triggerPrediction();
+            }, 120);
+        }
+    }
+
+    function syncJson() {
+        jsonCodePreview.textContent = JSON.stringify(modelFeatures, null, 2);
+    }
+
+    // ======================================================================
+    // FastAPI /predict Integration Engine
+    // ======================================================================
+    async function triggerPrediction() {
+        if (simState.predicting) return;
+        simState.predicting = true;
+        btnRunPredict.classList.add('loading');
+        indicatorAiState.textContent = 'PREDICTING';
+        indicatorAiState.className = 'live-indicator indicator-ai';
+
+        const startTime = performance.now();
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(modelFeatures)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server returned HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            const latency = (performance.now() - startTime).toFixed(1);
+
+            applyPredictionResult(data, latency);
+
+        } catch (error) {
+            console.error('Prediction failed:', error);
+            predictionStatusDot.style.background = 'var(--neon-red)';
+            predictionStatusText.textContent = 'Inference Error (Check /predict)';
+            indicatorAiState.textContent = 'API ERROR';
+            indicatorAiState.className = 'live-indicator text-neon-red';
+        } finally {
+            simState.predicting = false;
+            btnRunPredict.classList.remove('loading');
+        }
+    }
+
+    function applyPredictionResult(data, latency) {
+        const severity = data.severity; // 'Low' | 'Medium' | 'High'
+        const probas = data.probabilities || {};
+
+        const pLow = ((probas.Low || 0) * 100);
+        const pMed = ((probas.Medium || 0) * 100);
+        const pHigh = ((probas.High || 0) * 100);
+
+        // Update latency
+        valInferenceTime.textContent = `${latency} ms`;
+        lblLatency.textContent = `${latency} ms`;
+        predictionStatusDot.style.background = 'var(--neon-green)';
+        predictionStatusText.textContent = `XGBoost Inference Complete (${latency}ms)`;
+        indicatorAiState.textContent = 'VERIFIED';
+        indicatorAiState.className = 'live-indicator';
+
+        // Update Body Class for Scene Atmosphere
+        body.classList.remove('sev-low', 'sev-medium', 'sev-high');
+        body.classList.add(`sev-${severity.toLowerCase()}`);
+
+        // Update Severity Card
+        severityCard.className = `severity-card card-${severity.toLowerCase()}`;
+        sevValTitle.textContent = severity.toUpperCase();
+
+        // Update Gauge Ring
+        // Circumference = 2 * PI * 50 = 314.15
+        if (severity === 'Low') {
+            sevValTitle.style.color = 'var(--neon-green)';
+            sevGaugeRing.style.stroke = 'var(--neon-green)';
+            sevGaugeRing.style.strokeDashoffset = '210';
+            sevSubtext.textContent = 'Favorable roadway conditions. Minimal accident impact probability.';
+            lblActiveSeverity.textContent = 'LOW RISK // SAFE';
+            lblActiveSeverity.className = 'footer-value text-neon-green';
+        } else if (severity === 'Medium') {
+            sevValTitle.style.color = 'var(--neon-amber)';
+            sevGaugeRing.style.stroke = 'var(--neon-amber)';
+            sevGaugeRing.style.strokeDashoffset = '110';
+            sevSubtext.textContent = 'Elevated collision risk. Reduce speed and maintain extended following gap.';
+            lblActiveSeverity.textContent = 'MODERATE RISK // CAUTION';
+            lblActiveSeverity.className = 'footer-value text-accent';
+        } else {
+            // High
+            sevValTitle.style.color = 'var(--neon-red)';
+            sevGaugeRing.style.stroke = 'var(--neon-red)';
+            sevGaugeRing.style.strokeDashoffset = '15';
+            sevSubtext.textContent = 'CRITICAL HAZARD! Extreme probability of severe collision and vehicular damage.';
+            lblActiveSeverity.textContent = 'CRITICAL SEVERITY // DANGER';
+            lblActiveSeverity.className = 'footer-value text-neon-red';
+        }
+
+        // Update Probability Bars
+        probNumLow.textContent = `${pLow.toFixed(1)}%`;
+        probBarLow.style.width = `${pLow}%`;
+
+        probNumMed.textContent = `${pMed.toFixed(1)}%`;
+        probBarMed.style.width = `${pMed}%`;
+
+        probNumHigh.textContent = `${pHigh.toFixed(1)}%`;
+        probBarHigh.style.width = `${pHigh}%`;
+
+        // Update Risk Factor Chips
+        updateRiskChips(severity);
+
+        // Play Audio Chime if changed
+        if (severity !== simState.lastSeverity) {
+            audio.playSeverityChime(severity);
+            simState.lastSeverity = severity;
+        }
+    }
+
+    function updateRiskChips(severity) {
+        riskChipsWrap.innerHTML = '';
+        const chips = [];
+
+        if (modelFeatures.speed_limit >= 60) {
+            chips.push({ text: `⚡ High Speed (${modelFeatures.speed_limit} MPH)`, type: 'danger' });
+        } else if (modelFeatures.speed_limit <= 35) {
+            chips.push({ text: `✓ Safe Velocity (${modelFeatures.speed_limit} MPH)`, type: 'safe' });
+        }
+
+        if (modelFeatures.curvature_bin === 'Sharp_Curve') {
+            chips.push({ text: '↪️ Hairpin Sharp Curve', type: 'danger' });
+        } else if (modelFeatures.curvature_bin === 'Moderate_Curve') {
+            chips.push({ text: '↪️ Moderate Curve', type: 'caution' });
+        }
+
+        if (modelFeatures.weather === 'rainy') {
+            chips.push({ text: '🌧️ Wet Slick Pavement', type: 'danger' });
+        } else if (modelFeatures.weather === 'foggy') {
+            chips.push({ text: '🌫️ Restricted Fog Visibility', type: 'danger' });
+        }
+
+        if (modelFeatures.lighting === 'night') {
+            chips.push({ text: '🌙 Night Sight Horizon', type: 'caution' });
+        }
+
+        if (modelFeatures.num_reported_accidents >= 4) {
+            chips.push({ text: `🚨 ${modelFeatures.num_reported_accidents} Collisions (Blackspot)`, type: 'danger' });
+        } else if (modelFeatures.num_reported_accidents >= 1) {
+            chips.push({ text: `⚠️ ${modelFeatures.num_reported_accidents} Prior Collisions`, type: 'caution' });
+        }
+
+        if (!modelFeatures.road_signs_present) {
+            chips.push({ text: '🚫 Unmarked Route (No Signs)', type: 'caution' });
+        }
+
+        if (modelFeatures.holiday) {
+            chips.push({ text: '🎉 Holiday Density Surge', type: 'caution' });
+        }
+
+        if (chips.length === 0) {
+            chips.push({ text: '✓ Favorable Highway Geometry', type: 'safe' });
+            chips.push({ text: '✓ Dry Pavement Adhesion', type: 'safe' });
+        }
+
+        chips.forEach(c => {
+            const span = document.createElement('span');
+            span.className = `risk-chip chip-${c.type}`;
+            span.textContent = c.text;
+            riskChipsWrap.appendChild(span);
+        });
+    }
+
     // Synchronize UI Displays
     function updateCurvatureDisplay() {
         const curve = modelFeatures.curvature_bin;
@@ -738,30 +985,30 @@ document.addEventListener('DOMContentLoaded', () => {
             simState.targetCurveBend = 0;
             hudCurve.textContent = 'STRAIGHT (0°)';
             svgCurveArrow.setAttribute('d', 'M 50 80 L 50 20 L 40 32 M 50 20 L 60 32');
-            signCurveText.textContent = 'ROAD AHEAD';
         } else if (curve === 'Slight_Curve') {
             simState.targetCurveBend = 0.35;
             hudCurve.textContent = 'SLIGHT (+15°)';
             svgCurveArrow.setAttribute('d', 'M 50 80 Q 50 45 68 28 L 56 25 M 68 28 L 68 40');
-            signCurveText.textContent = 'CURVE RIGHT';
         } else if (curve === 'Moderate_Curve') {
             simState.targetCurveBend = 0.65;
             hudCurve.textContent = 'MODERATE (+30°)';
             svgCurveArrow.setAttribute('d', 'M 45 80 Q 45 40 76 25 L 64 22 M 76 25 L 75 37');
-            signCurveText.textContent = 'SHARP CURVE';
         } else if (curve === 'Sharp_Curve') {
             simState.targetCurveBend = 1.0;
             hudCurve.textContent = 'SHARP (+45°)';
             svgCurveArrow.setAttribute('d', 'M 40 80 Q 40 35 84 22 L 72 18 M 84 22 L 82 35');
-            signCurveText.textContent = 'HAIRPIN BEND';
         }
         miniRadar.render();
     }
 
     function updateSpeedDisplay() {
         const speed = modelFeatures.speed_limit;
-        hudSpeedVal.textContent = speed;
-        signSpeedNum.textContent = speed;
+        if (hudSpeedVal) hudSpeedVal.textContent = speed;
+        if (signSpeedNum) signSpeedNum.textContent = speed;
+        const speedSlider = document.getElementById('ctrl-speed-slider');
+        const sliderSpeedVal = document.getElementById('slider-speed-val');
+        if (speedSlider) speedSlider.value = speed;
+        if (sliderSpeedVal) sliderSpeedVal.textContent = `${speed} MPH`;
 
         const normalized = (speed - 25) / (70 - 25);
         const arcOffset = 200 - (normalized * 150);
@@ -805,7 +1052,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         hudAccidentStat.textContent = num === 0 ? '0 (CLEAN)' : `${num} PRIOR`;
 
-        // Update hazard badge & color
         if (num === 0) {
             badgeHazardLevel.textContent = 'SAFE CORRIDOR';
             badgeHazardLevel.className = 'hazard-level-badge level-safe';
@@ -824,7 +1070,6 @@ document.addEventListener('DOMContentLoaded', () => {
             hudAccidentStat.className = 'stat-value text-neon-red';
         }
 
-        // Render bar pips
         const pips = hazardMeterBars.querySelectorAll('.bar-pip');
         pips.forEach((pip, idx) => {
             pip.className = 'bar-pip';
@@ -838,40 +1083,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateEnvironmentHUD() {
         if (modelFeatures.weather === 'rainy') {
-            hudGrip.textContent = '55% WET / SLICK';
-            hudGrip.className = 'stat-value text-accent';
-            hudVisibility.textContent = '3 MILES (RAIN)';
-            advisoryIcon.textContent = '🌧️';
-            advisoryTitle.textContent = 'SLIPPERY WHEN WET';
-            advisoryDesc.textContent = 'REDUCE SPEED NOW';
-            lblActiveWeather.textContent = 'Rainstorm & Wet Pavement';
+            if (hudGrip) { hudGrip.textContent = '55% WET / SLICK'; hudGrip.className = 'stat-value text-accent'; }
+            if (hudVisibility) hudVisibility.textContent = '3 MILES (RAIN)';
+            if (advisoryIcon) advisoryIcon.textContent = '🌧️';
+            if (advisoryDesc) advisoryDesc.textContent = 'SLICK';
+            if (lblActiveWeather) lblActiveWeather.textContent = 'Rainstorm & Wet Pavement';
         } else if (modelFeatures.weather === 'foggy') {
-            hudGrip.textContent = '85% DAMP';
-            hudGrip.className = 'stat-value';
-            hudVisibility.textContent = '0.4 MILES (FOG)';
-            advisoryIcon.textContent = '🌫️';
-            advisoryTitle.textContent = 'DENSE FOG ADVISORY';
-            advisoryDesc.textContent = 'USE LOW BEAM ONLY';
-            lblActiveWeather.textContent = 'Volumetric Fog Alert';
+            if (hudGrip) { hudGrip.textContent = '85% DAMP'; hudGrip.className = 'stat-value'; }
+            if (hudVisibility) hudVisibility.textContent = '0.4 MILES (FOG)';
+            if (advisoryIcon) advisoryIcon.textContent = '🌫️';
+            if (advisoryDesc) advisoryDesc.textContent = 'FOG';
+            if (lblActiveWeather) lblActiveWeather.textContent = 'Volumetric Fog Alert';
         } else {
-            hudGrip.textContent = '100% DRY';
-            hudGrip.className = 'stat-value text-neon-green';
-            hudVisibility.textContent = modelFeatures.lighting === 'night' ? 'HEADLIGHT RANGE' : '10 MILES';
-            advisoryIcon.textContent = '☀️';
-            advisoryTitle.textContent = 'CONDITIONS CLEAR';
-            advisoryDesc.textContent = 'SURFACE DRY';
-            lblActiveWeather.textContent = 'Clear Conditions';
+            if (hudGrip) { hudGrip.textContent = '100% DRY'; hudGrip.className = 'stat-value text-neon-green'; }
+            if (hudVisibility) hudVisibility.textContent = modelFeatures.lighting === 'night' ? 'HEADLIGHT RANGE' : '10 MILES';
+            if (advisoryIcon) advisoryIcon.textContent = '☀️';
+            if (advisoryDesc) advisoryDesc.textContent = 'CLEAR';
+            if (lblActiveWeather) lblActiveWeather.textContent = 'Clear Conditions';
         }
-    }
-
-    function syncAll() {
-        jsonCodePreview.textContent = JSON.stringify(modelFeatures, null, 2);
     }
 
     function applyPreset(preset) {
         Object.assign(modelFeatures, preset);
 
-        // Update Pills
         setActivePill('#ctrl-road-type', modelFeatures.road_type);
         setActivePill('#ctrl-curvature', modelFeatures.curvature_bin);
         setActivePill('#ctrl-speed-pills', String(modelFeatures.speed_limit));
@@ -880,7 +1114,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setActivePill('#ctrl-weather', modelFeatures.weather);
         setActivePill('#ctrl-time-of-day', modelFeatures.time_of_day);
 
-        // Update Switches
         switchRoadSigns.checked = modelFeatures.road_signs_present;
         switchRoadSigns.dispatchEvent(new Event('change'));
 
@@ -889,7 +1122,6 @@ document.addEventListener('DOMContentLoaded', () => {
         switchSchoolSeason.checked = modelFeatures.school_season;
         switchSchoolSeason.dispatchEvent(new Event('change'));
 
-        // Update Displays
         updateRoadDisplay();
         updateCurvatureDisplay();
         updateSpeedDisplay();
@@ -899,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateAccidentDisplay();
         hudLanes.textContent = `${modelFeatures.num_lanes} ACTIVE`;
 
-        syncAll();
+        onFeatureChange();
     }
 
     function setActivePill(containerSelector, val) {
@@ -941,6 +1173,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+
+    // Speed Slider Synchronization
+    const speedSlider = document.getElementById('ctrl-speed-slider');
+    const sliderSpeedVal = document.getElementById('slider-speed-val');
+
+    if (speedSlider) {
+        speedSlider.addEventListener('input', (e) => {
+            const rawVal = parseInt(e.target.value, 10);
+            // Snap to nearest allowed speed limit: 25, 35, 45, 60, 70
+            const allowed = [25, 35, 45, 60, 70];
+            const snapped = allowed.reduce((prev, curr) => 
+                Math.abs(curr - rawVal) < Math.abs(prev - rawVal) ? curr : prev
+            );
+            
+            modelFeatures.speed_limit = snapped;
+            if (sliderSpeedVal) sliderSpeedVal.textContent = `${snapped} MPH`;
+            setActivePill('#ctrl-speed-pills', String(snapped));
+            updateSpeedDisplay();
+            onFeatureChange();
+        });
+    }
+
+    // Minimize / Expand Road View Toggle
+    const btnMinimize = document.getElementById('btn-minimize-toggle');
+    const minimizeLabel = document.getElementById('minimize-label');
+    if (btnMinimize) {
+        btnMinimize.addEventListener('click', () => {
+            body.classList.toggle('cockpit-minimized');
+            if (body.classList.contains('cockpit-minimized')) {
+                btnMinimize.classList.add('active');
+                if (minimizeLabel) minimizeLabel.textContent = 'SHOW COCKPIT';
+            } else {
+                btnMinimize.classList.remove('active');
+                if (minimizeLabel) minimizeLabel.textContent = 'VIEW ROAD';
+            }
+        });
+    }
+
     // Initialize Displays
     updateRoadDisplay();
     updateCurvatureDisplay();
@@ -950,7 +1220,10 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTimeDisplay();
     updateAccidentDisplay();
     signSchoolBox.classList.add('active');
-    syncAll();
+    syncJson();
+
+    // Trigger Initial Prediction on Page Load
+    triggerPrediction();
 
     // 60 FPS Main Render Loop
     let lastTime = performance.now();

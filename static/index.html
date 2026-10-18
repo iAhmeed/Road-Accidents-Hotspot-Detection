@@ -10,13 +10,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body class="theme-daylight weather-clear mode-cockpit">
+<body class="theme-daylight weather-clear mode-cockpit sev-low">
 
     <!-- 3D Perspective Road Canvas (Full Viewport) -->
     <div id="road-environment">
         <canvas id="roadCanvas"></canvas>
         <div id="fog-overlay"></div>
         <div id="headlight-beam"></div>
+        <div id="hazard-vignette"></div>
         <div id="windshield-frame">
             <div class="windshield-sunstrip"></div>
             <div class="windshield-wiper" id="wiper-left"></div>
@@ -47,14 +48,19 @@
                 <div class="ticker-separator">/</div>
                 <div class="ticker-item"><span class="ticker-label">TIME</span><span class="ticker-val text-neon-cyan" id="val-time">08:45 AM (MORNING)</span></div>
                 <div class="ticker-separator">/</div>
-                <div class="ticker-item"><span class="ticker-label">SYS</span><span class="ticker-val text-neon-green" id="val-sys">FASTAPI 200 OK</span></div>
+                <div class="ticker-item"><span class="ticker-label">INFERENCE</span><span class="ticker-val text-neon-green" id="val-inference-time">&lt; 8ms</span></div>
             </div>
 
             <!-- Camera View & Audio Controls -->
             <div class="header-actions">
+                <button id="btn-minimize-toggle" class="hud-pill-btn" title="Toggle Full Road View / Cockpit Console">
+                    <span class="pill-icon">👁️</span>
+                    <span class="pill-text" id="minimize-label">VIEW ROAD</span>
+                </button>
+
                 <button id="btn-camera-toggle" class="hud-pill-btn active" title="Toggle Cockpit / Drone Radar View">
                     <span class="pill-icon">🚘</span>
-                    <span class="pill-text" id="camera-label">COCKPIT VIEW</span>
+                    <span class="pill-text" id="camera-label">COCKPIT</span>
                 </button>
 
                 <button id="btn-audio-toggle" class="hud-pill-btn" title="Toggle Ambient Audio Engine">
@@ -97,7 +103,7 @@
                             <span class="speed-unit">MPH</span>
                         </div>
                     </div>
-                    <div class="speed-label">SPEED LIMIT LOCK</div>
+                    <div class="speed-label">SIMULATED VELOCITY</div>
                 </div>
 
                 <div class="telemetry-stats-grid">
@@ -134,7 +140,7 @@
                     <div class="panel-title-group">
                         <div class="panel-pretitle">
                             <span class="panel-tag">COCKPIT CONTROL MATRIX</span>
-                            <span class="task-badge">TASK 3 • 12 FEATURES</span>
+                            <span class="task-badge task-4-badge">TASK 4 • LIVE AI PREDICTION</span>
                         </div>
                         <h2 class="panel-title">Roadway & Hazard Configuration</h2>
                     </div>
@@ -146,6 +152,23 @@
                         <button class="preset-pill" data-preset="highway" title="Night interstate travel">⚡ Highway</button>
                         <button class="preset-pill" data-preset="mountain" title="Rainy rural winding road">🌧️ Mountain</button>
                         <button class="preset-pill" data-preset="blackspot" title="High risk accident hotspot">🚨 Hotspot</button>
+                    </div>
+                </div>
+
+                <!-- Prediction Action Trigger Bar -->
+                <div class="prediction-action-bar">
+                    <button class="btn-predict-trigger" id="btn-run-predict">
+                        <span class="predict-icon">⚡</span>
+                        <span class="predict-text">ANALYZE ACCIDENT SEVERITY</span>
+                        <span class="predict-spinner" id="predict-spinner"></span>
+                    </button>
+
+                    <div class="live-sync-wrap" title="Automatically re-predict on every control adjustment">
+                        <label class="hud-switch switch-small">
+                            <input type="checkbox" id="switch-live-sync" checked>
+                            <span class="switch-slider"></span>
+                        </label>
+                        <span class="live-sync-label">LIVE SYNC <span class="sync-dot"></span></span>
                     </div>
                 </div>
 
@@ -178,7 +201,7 @@
                                 <div class="pill-selector" id="ctrl-road-type">
                                     <button class="pill-opt active" data-val="urban">Urban Corridor</button>
                                     <button class="pill-opt" data-val="highway">Interstate Highway</button>
-                                    <button class="pill-opt" data-val="rural">Rural Route</button>
+                                    <button class="pill-opt" data-val="rural">Rural Mountain Pass</button>
                                 </div>
                             </div>
 
@@ -196,13 +219,12 @@
                                 </div>
                             </div>
 
-                            <!-- 3 & 4 Dual Row: Speed Limit & Lanes -->
-                            <div class="control-row-dual">
-                                <!-- 3. Speed Limit -->
-                                <div class="control-group">
-                                    <label class="control-label">
+                            <!-- 3. Speed Limit Dual Controller (Slider + Pills) -->
+                            <div class="control-group">
+                                <div class="control-label-split">
+                                    <label class="control-label" for="ctrl-speed-slider">
                                         <span class="label-icon">⚡</span>
-                                        <span>3. Speed Limit (<code>speed_limit</code>)</span>
+                                        <span>3. Speed Limit (<code>speed_limit</code>: <strong class="text-neon-cyan" id="slider-speed-val">35 MPH</strong>)</span>
                                     </label>
                                     <div class="pill-selector speed-selector" id="ctrl-speed-pills">
                                         <button class="pill-opt" data-val="25">25</button>
@@ -212,19 +234,29 @@
                                         <button class="pill-opt" data-val="70">70</button>
                                     </div>
                                 </div>
-
-                                <!-- 4. Lanes Count -->
-                                <div class="control-group">
-                                    <label class="control-label">
-                                        <span class="label-icon">🚦</span>
-                                        <span>4. Roadway Lanes (<code>num_lanes</code>)</span>
-                                    </label>
-                                    <div class="pill-selector" id="ctrl-lanes">
-                                        <button class="pill-opt" data-val="1">1 Lane</button>
-                                        <button class="pill-opt active" data-val="2">2 Lanes</button>
-                                        <button class="pill-opt" data-val="3">3 Lanes</button>
-                                        <button class="pill-opt" data-val="4">4 Lanes</button>
+                                <div class="slider-wrapper">
+                                    <input type="range" id="ctrl-speed-slider" min="25" max="70" step="5" value="35">
+                                    <div class="slider-marks">
+                                        <span>25 MPH</span>
+                                        <span>35 MPH</span>
+                                        <span>45 MPH</span>
+                                        <span>60 MPH</span>
+                                        <span>70 MPH</span>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- 4. Lanes Count -->
+                            <div class="control-group">
+                                <label class="control-label">
+                                    <span class="label-icon">🚦</span>
+                                    <span>4. Roadway Lanes (<code>num_lanes</code>)</span>
+                                </label>
+                                <div class="pill-selector" id="ctrl-lanes">
+                                    <button class="pill-opt" data-val="1">1 Lane</button>
+                                    <button class="pill-opt active" data-val="2">2 Lanes</button>
+                                    <button class="pill-opt" data-val="3">3 Lanes</button>
+                                    <button class="pill-opt" data-val="4">4 Lanes</button>
                                 </div>
                             </div>
 
@@ -376,8 +408,8 @@
                 <!-- Footer Summary Bar with Payload Inspector Toggle -->
                 <div class="cockpit-footer-summary">
                     <div class="summary-status">
-                        <span class="status-indicator-dot"></span>
-                        <span class="status-text">12/12 Model Features Bound & Validated</span>
+                        <span class="status-indicator-dot" id="prediction-status-dot"></span>
+                        <span class="status-text" id="prediction-status-text">XGBoost Ready (F1=0.8528)</span>
                     </div>
 
                     <div class="summary-actions">
@@ -398,50 +430,112 @@
 
             </section>
 
-            <!-- Right Telemetry Panel: Authentic Road Signs HUD -->
+            <!-- Right Telemetry Panel: Live Severity AI Radar & Road Signs -->
             <aside class="hud-panel right-signs-panel" id="right-signs-panel">
                 <div class="panel-header">
-                    <span class="panel-tag">MUTCD ROAD SIGNS</span>
-                    <span class="live-indicator" id="indicator-sign-state">ACTIVE</span>
+                    <span class="panel-tag">AI SEVERITY RADAR</span>
+                    <span class="live-indicator indicator-ai" id="indicator-ai-state">PREDICTING</span>
                 </div>
 
-                <div class="road-signs-stack">
+                <!-- AI Prediction Outcome Card -->
+                <div class="severity-card" id="severity-card">
+                    <div class="severity-gauge-ring-wrap">
+                        <svg class="severity-gauge-svg" viewBox="0 0 120 120">
+                            <circle class="ring-bg" cx="60" cy="60" r="50"></circle>
+                            <circle class="ring-val" id="sev-gauge-ring" cx="60" cy="60" r="50"></circle>
+                        </svg>
+                        <div class="severity-center-content">
+                            <span class="sev-tag">PREDICTED RISK</span>
+                            <span class="sev-val-title" id="sev-val-title">LOW</span>
+                        </div>
+                    </div>
+
+                    <div class="severity-subtext" id="sev-subtext">
+                        Normal driving risk. Routine conditions.
+                    </div>
+                </div>
+
+                <!-- Multi-Class Probability Distribution Breakdown -->
+                <div class="probabilities-section">
+                    <div class="section-title-mini">PROBABILITY BREAKDOWN</div>
+                    
+                    <div class="prob-row">
+                        <div class="prob-labels">
+                            <span class="prob-name text-neon-green">Low Severity</span>
+                            <span class="prob-num text-neon-green" id="prob-num-low">99.9%</span>
+                        </div>
+                        <div class="prob-bar-track">
+                            <div class="prob-bar-fill fill-low" id="prob-bar-low" style="width: 99.9%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="prob-row">
+                        <div class="prob-labels">
+                            <span class="prob-name text-accent">Medium Severity</span>
+                            <span class="prob-num text-accent" id="prob-num-med">0.1%</span>
+                        </div>
+                        <div class="prob-bar-track">
+                            <div class="prob-bar-fill fill-med" id="prob-bar-med" style="width: 0.1%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="prob-row">
+                        <div class="prob-labels">
+                            <span class="prob-name text-neon-red">High Severity</span>
+                            <span class="prob-num text-neon-red" id="prob-num-high">0.0%</span>
+                        </div>
+                        <div class="prob-bar-track">
+                            <div class="prob-bar-fill fill-high" id="prob-bar-high" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Risk Factor Tags -->
+                <div class="risk-factors-section">
+                    <div class="section-title-mini">PRIMARY RISK DRIVERS</div>
+                    <div class="risk-chips-wrap" id="risk-chips-wrap">
+                        <span class="risk-chip chip-safe">✓ Posted Speed Limit</span>
+                        <span class="risk-chip chip-safe">✓ Day Visibility</span>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="panel-section-divider">
+                    <span>ROAD SIGNS HUD</span>
+                </div>
+
+                <!-- Compact MUTCD Road Signs Stack -->
+                <div class="road-signs-stack-compact">
                     <!-- Speed Limit Sign -->
-                    <div class="us-road-sign speed-limit-sign">
+                    <div class="us-road-sign speed-limit-sign-mini">
                         <div class="sign-inner">
                             <div class="sign-text-small">SPEED</div>
-                            <div class="sign-text-small">LIMIT</div>
                             <div class="sign-text-large" id="sign-speed-num">35</div>
                         </div>
                     </div>
 
                     <!-- Warning Curve Sign -->
-                    <div class="us-road-sign caution-sign" id="sign-curve-box">
+                    <div class="us-road-sign caution-sign-mini" id="sign-curve-box">
                         <div class="sign-diamond">
                             <svg class="sign-curve-svg" viewBox="0 0 100 100">
                                 <path id="svg-curve-arrow" d="M 50 80 L 50 20 L 40 32 M 50 20 L 60 32" fill="none" stroke="#111" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            <span class="sign-subtext" id="sign-curve-text">ROAD AHEAD</span>
                         </div>
                     </div>
 
                     <!-- Weather / Surface Hazard Sign -->
-                    <div class="us-road-sign hazard-advisory-sign" id="sign-weather-box">
-                        <div class="advisory-inner">
-                            <span class="advisory-icon" id="advisory-icon">☀️</span>
-                            <span class="advisory-title" id="advisory-title">CONDITIONS NORMAL</span>
-                            <span class="advisory-desc" id="advisory-desc">SURFACE CLEAR</span>
-                        </div>
+                    <div class="us-road-sign hazard-advisory-sign-mini" id="sign-weather-box">
+                        <span class="advisory-icon" id="advisory-icon">☀️</span>
+                        <span class="advisory-desc" id="advisory-desc">CLEAR</span>
                     </div>
 
-                    <!-- School Zone Sign (Conditional) -->
-                    <div class="us-road-sign school-sign" id="sign-school-box">
-                        <div class="school-sign-pentagon">
-                            <span class="school-icon">🚸</span>
-                            <span class="school-text">SCHOOL ZONE</span>
-                        </div>
+                    <!-- School Zone Sign -->
+                    <div class="us-road-sign school-sign-mini" id="sign-school-box">
+                        <span class="school-icon">🚸</span>
+                        <span class="school-text">SCHOOL</span>
                     </div>
                 </div>
+
             </aside>
 
         </main>
@@ -457,12 +551,16 @@
                 <span class="footer-value" id="lbl-active-weather">Clear Visibility</span>
             </div>
             <div class="footer-segment">
-                <span class="footer-label">FRAME RATE:</span>
-                <span class="footer-value text-neon-green" id="lbl-fps">60 FPS</span>
+                <span class="footer-label">SEVERITY CLASSIFIER:</span>
+                <span class="footer-value text-neon-green" id="lbl-active-severity">LOW RISK // SAFE</span>
             </div>
             <div class="footer-segment">
-                <span class="footer-label">API TARGET:</span>
-                <span class="footer-value text-neon-cyan">POST /predict (FastAPI Ready)</span>
+                <span class="footer-label">MODEL LATENCY:</span>
+                <span class="footer-value text-neon-cyan" id="lbl-latency">4.2 ms</span>
+            </div>
+            <div class="footer-segment">
+                <span class="footer-label">FRAME RATE:</span>
+                <span class="footer-value text-neon-green" id="lbl-fps">60 FPS</span>
             </div>
         </footer>
 

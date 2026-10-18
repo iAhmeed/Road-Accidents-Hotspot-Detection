@@ -1,12 +1,12 @@
 /* ==========================================================================
    Sentinel Road Telemetry — Design System & Cockpit Stylesheet
-   Task 3: Full 12-Feature Interactive Control Matrix & Cockpit Tabs
+   Task 4: Real-Time Severity AI Prediction Engine & HUD Telemetry
    ========================================================================== */
 
 :root {
     /* Color Palette */
     --bg-space: #060911;
-    --bg-cockpit: rgba(10, 16, 28, 0.82);
+    --bg-cockpit: rgba(10, 16, 28, 0.65);
     --bg-cockpit-header: rgba(14, 22, 38, 0.92);
     --glass-border: rgba(255, 255, 255, 0.12);
     --glass-border-glow: rgba(0, 242, 254, 0.35);
@@ -19,6 +19,11 @@
     --neon-red: #ff0055;
     --neon-green: #00f59b;
     --road-asphalt: #181d26;
+
+    /* Severity Colors */
+    --sev-low: #00f59b;
+    --sev-med: #ffb703;
+    --sev-high: #ff0055;
     
     /* Text Hierarchy */
     --text-primary: #f8fafc;
@@ -58,8 +63,8 @@ html, body {
 
 /* Custom Scrollbar for Panes */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
 }
 ::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.2);
@@ -74,7 +79,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Full Viewport 3D Road Scene
+   Full Viewport 3D Road Scene & Critical Hazard Vignette
    ========================================================================== */
 #road-environment {
     position: fixed;
@@ -90,6 +95,25 @@ html, body {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+/* Hazard Warning Flashing Vignette for High Severity */
+#hazard-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 100px rgba(255, 0, 85, 0);
+    transition: box-shadow 0.6s ease;
+    z-index: 3;
+}
+
+body.sev-high #hazard-vignette {
+    animation: hazardStrobe 1.6s infinite ease-in-out;
+}
+
+@keyframes hazardStrobe {
+    0%, 100% { box-shadow: inset 0 0 90px rgba(255, 0, 85, 0.55); }
+    50% { box-shadow: inset 0 0 40px rgba(255, 0, 85, 0.2); }
 }
 
 /* Volumetric Fog Overlay */
@@ -194,7 +218,7 @@ body.weather-rainy .windshield-wiper {
     justify-content: space-between;
     width: 100vw;
     height: 100vh;
-    padding: 16px 20px 12px 20px;
+    padding: 14px 18px 10px 18px;
     pointer-events: none;
 }
 
@@ -211,7 +235,7 @@ body.weather-rainy .windshield-wiper {
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
-    padding: 9px 18px;
+    padding: 8px 16px;
     box-shadow: var(--panel-shadow);
     gap: 12px;
 }
@@ -219,7 +243,7 @@ body.weather-rainy .windshield-wiper {
 .brand-badge {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .radar-dot {
@@ -247,13 +271,13 @@ body.weather-rainy .windshield-wiper {
 .brand-title {
     font-family: var(--font-heading);
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     letter-spacing: 1.5px;
     color: var(--text-primary);
 }
 
 .brand-subtitle {
-    font-size: 0.66rem;
+    font-size: 0.65rem;
     letter-spacing: 1px;
     color: var(--neon-cyan);
     font-family: var(--font-mono);
@@ -267,9 +291,9 @@ body.weather-rainy .windshield-wiper {
     background: rgba(0, 0, 0, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 8px;
-    padding: 6px 14px;
+    padding: 5px 12px;
     font-family: var(--font-mono);
-    font-size: 0.74rem;
+    font-size: 0.72rem;
 }
 
 .ticker-item {
@@ -306,10 +330,10 @@ body.weather-rainy .windshield-wiper {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     color: var(--text-secondary);
-    padding: 7px 12px;
+    padding: 6px 12px;
     border-radius: 20px;
     font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -332,8 +356,8 @@ body.weather-rainy .windshield-wiper {
 /* Mini Radar Widget */
 .mini-radar-container {
     position: relative;
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     background: rgba(0, 20, 30, 0.7);
     border: 1px solid var(--neon-cyan);
@@ -350,7 +374,7 @@ body.weather-rainy .windshield-wiper {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 21px;
+    width: 19px;
     height: 2px;
     background: linear-gradient(to right, rgba(0, 242, 254, 0), var(--neon-cyan));
     transform-origin: left center;
@@ -367,11 +391,11 @@ body.weather-rainy .windshield-wiper {
    ========================================================================== */
 #cockpit-viewport {
     display: grid;
-    grid-template-columns: 270px 1fr 240px;
-    gap: 18px;
+    grid-template-columns: 250px 1fr 300px;
+    gap: 16px;
     align-items: center;
     flex: 1;
-    margin: 12px 0;
+    margin: 10px 0;
     min-height: 0;
 }
 
@@ -384,9 +408,9 @@ body.weather-rainy .windshield-wiper {
     box-shadow: var(--panel-shadow);
     display: flex;
     flex-direction: column;
-    padding: 18px;
+    padding: 16px;
     transition: all var(--transition-normal);
-    max-height: calc(100vh - 130px);
+    max-height: calc(100vh - 120px);
 }
 
 .hud-panel:hover {
@@ -397,7 +421,7 @@ body.weather-rainy .windshield-wiper {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding-bottom: 8px;
 }
@@ -422,6 +446,12 @@ body.weather-rainy .windshield-wiper {
     letter-spacing: 1px;
 }
 
+.indicator-ai {
+    background: rgba(0, 242, 254, 0.15);
+    color: var(--neon-cyan);
+    border-color: var(--neon-cyan);
+}
+
 /* Left Panel: Speedometer & Telemetry */
 .left-gauge-panel {
     align-self: center;
@@ -432,13 +462,13 @@ body.weather-rainy .windshield-wiper {
     flex-direction: column;
     align-items: center;
     position: relative;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .speed-dial-wrap {
     position: relative;
-    width: 170px;
-    height: 110px;
+    width: 160px;
+    height: 100px;
 }
 
 .speed-dial-svg {
@@ -465,7 +495,7 @@ body.weather-rainy .windshield-wiper {
 
 .speed-digital-display {
     position: absolute;
-    bottom: 8px;
+    bottom: 6px;
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
@@ -473,7 +503,7 @@ body.weather-rainy .windshield-wiper {
 
 .speed-num {
     font-family: var(--font-heading);
-    font-size: 2.4rem;
+    font-size: 2.2rem;
     font-weight: 800;
     line-height: 1;
     color: var(--text-primary);
@@ -483,43 +513,43 @@ body.weather-rainy .windshield-wiper {
 .speed-unit {
     display: block;
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     color: var(--neon-cyan);
     letter-spacing: 2px;
 }
 
 .speed-label {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     font-family: var(--font-mono);
-    margin-top: 4px;
+    margin-top: 3px;
 }
 
 .telemetry-stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 7px;
 }
 
 .stat-cell {
     background: rgba(0, 0, 0, 0.35);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 8px 10px;
+    border-radius: 9px;
+    padding: 7px 9px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
 }
 
 .stat-title {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-family: var(--font-mono);
     color: var(--text-muted);
     letter-spacing: 0.5px;
 }
 
 .stat-value {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 700;
     font-family: var(--font-heading);
     color: var(--text-primary);
@@ -529,10 +559,10 @@ body.weather-rainy .windshield-wiper {
 }
 
 /* ==========================================================================
-   Center Panel: 12-Feature Interactive Control Matrix
+   Center Panel: 12-Feature Control Matrix & Action Bar
    ========================================================================== */
 .center-console-panel {
-    max-width: 720px;
+    max-width: 700px;
     margin: 0 auto;
     width: 100%;
     display: flex;
@@ -548,7 +578,7 @@ body.weather-rainy .windshield-wiper {
 
 .panel-title {
     font-family: var(--font-heading);
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--text-primary);
 }
@@ -564,16 +594,22 @@ body.weather-rainy .windshield-wiper {
     border-radius: 12px;
 }
 
+.task-4-badge {
+    background: rgba(0, 245, 155, 0.15);
+    color: var(--neon-green);
+    border-color: var(--neon-green);
+}
+
 /* Presets Toolbar */
 .presets-toolbar {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
 }
 
 .presets-label {
     font-family: var(--font-mono);
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     color: var(--text-muted);
     font-weight: 600;
 }
@@ -583,9 +619,9 @@ body.weather-rainy .windshield-wiper {
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-secondary);
     font-family: var(--font-sans);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    padding: 4px 10px;
+    padding: 3px 9px;
     border-radius: 14px;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -605,15 +641,117 @@ body.weather-rainy .windshield-wiper {
     box-shadow: 0 2px 8px rgba(0, 242, 254, 0.35);
 }
 
+/* Prediction Action Trigger Bar */
+.prediction-action-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 6px 10px;
+}
+
+.btn-predict-trigger {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.25), rgba(79, 172, 254, 0.35));
+    border: 1px solid var(--neon-cyan);
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+}
+
+.btn-predict-trigger:hover {
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue));
+    color: var(--text-dark);
+    box-shadow: 0 0 22px rgba(0, 242, 254, 0.45);
+    transform: translateY(-1px);
+}
+
+.btn-predict-trigger:active {
+    transform: translateY(1px);
+}
+
+.predict-spinner {
+    display: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+.btn-predict-trigger.loading .predict-spinner {
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.live-sync-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 6px;
+}
+
+.switch-small {
+    width: 34px !important;
+    height: 18px !important;
+}
+
+.switch-small .switch-slider:before {
+    height: 12px !important;
+    width: 12px !important;
+    left: 2px !important;
+    bottom: 2px !important;
+}
+
+.switch-small input:checked + .switch-slider:before {
+    transform: translateX(16px) !important;
+}
+
+.live-sync-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--neon-green);
+    box-shadow: 0 0 6px var(--neon-green);
+}
+
 /* Cockpit Category Tabs Navigation */
 .cockpit-tabs-nav {
     display: flex;
     background: rgba(0, 0, 0, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 4px;
-    gap: 4px;
-    margin-bottom: 14px;
+    padding: 3px;
+    gap: 3px;
+    margin-bottom: 12px;
 }
 
 .cockpit-tab-btn {
@@ -621,14 +759,14 @@ body.weather-rainy .windshield-wiper {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 7px;
     background: transparent;
     border: none;
     color: var(--text-secondary);
     font-family: var(--font-heading);
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    padding: 8px 12px;
+    padding: 7px 10px;
     border-radius: 8px;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -651,7 +789,7 @@ body.weather-rainy .windshield-wiper {
     flex: 1;
     overflow-y: auto;
     padding-right: 4px;
-    min-height: 220px;
+    min-height: 200px;
 }
 
 .tab-pane {
@@ -671,13 +809,13 @@ body.weather-rainy .windshield-wiper {
 .controls-matrix {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 11px;
 }
 
 .control-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
 }
 
 .control-row-dual {
@@ -690,14 +828,14 @@ body.weather-rainy .windshield-wiper {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .control-label code {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: var(--neon-cyan);
     background: rgba(0, 242, 254, 0.08);
     padding: 1px 5px;
@@ -705,7 +843,7 @@ body.weather-rainy .windshield-wiper {
 }
 
 .label-icon {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 /* Pill Option Selectors */
@@ -724,10 +862,10 @@ body.weather-rainy .windshield-wiper {
     border: none;
     color: var(--text-secondary);
     font-family: var(--font-sans);
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     font-weight: 600;
-    padding: 8px 8px;
-    border-radius: 8px;
+    padding: 7px 6px;
+    border-radius: 7px;
     cursor: pointer;
     transition: all var(--transition-fast);
     text-align: center;
@@ -749,16 +887,14 @@ body.weather-rainy .windshield-wiper {
 .speed-selector .pill-opt {
     font-family: var(--font-heading);
     font-weight: 800;
-    font-size: 0.84rem;
+    font-size: 0.82rem;
 }
 
-/* ==========================================================================
-   Tab 3: Switches Grid & Prior Accidents Stepper
-   ========================================================================== */
+/* Switches Grid */
 .switches-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 9px;
 }
 
 .switch-card {
@@ -768,7 +904,7 @@ body.weather-rainy .windshield-wiper {
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 12px;
-    padding: 10px 14px;
+    padding: 9px 12px;
     transition: all var(--transition-fast);
 }
 
@@ -784,13 +920,13 @@ body.weather-rainy .windshield-wiper {
 }
 
 .switch-title {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 700;
     color: var(--text-primary);
 }
 
 .switch-subtitle {
-    font-size: 0.65rem;
+    font-size: 0.63rem;
     color: var(--text-muted);
 }
 
@@ -798,8 +934,8 @@ body.weather-rainy .windshield-wiper {
 .hud-switch {
     position: relative;
     display: inline-block;
-    width: 44px;
-    height: 24px;
+    width: 42px;
+    height: 22px;
     flex-shrink: 0;
 }
 
@@ -815,15 +951,15 @@ body.weather-rainy .windshield-wiper {
     inset: 0;
     background-color: rgba(255, 255, 255, 0.15);
     transition: 0.25s;
-    border-radius: 24px;
+    border-radius: 22px;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .switch-slider:before {
     position: absolute;
     content: "";
-    height: 16px;
-    width: 16px;
+    height: 14px;
+    width: 14px;
     left: 3px;
     bottom: 3px;
     background-color: #ffffff;
@@ -838,16 +974,16 @@ body.weather-rainy .windshield-wiper {
 }
 
 .hud-switch input:checked + .switch-slider:before {
-    transform: translateX(20px);
+    transform: translateX(18px);
     background-color: var(--text-dark);
 }
 
-/* Prior Reported Accidents Stepper & Hazard Meter */
+/* Prior Reported Accidents Stepper */
 .accident-counter-group {
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 12px 16px;
+    padding: 10px 14px;
     margin-top: 4px;
 }
 
@@ -855,14 +991,14 @@ body.weather-rainy .windshield-wiper {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .hazard-level-badge {
     font-family: var(--font-mono);
-    font-size: 0.64rem;
+    font-size: 0.62rem;
     font-weight: 800;
-    padding: 2px 8px;
+    padding: 2px 7px;
     border-radius: 4px;
     letter-spacing: 1px;
 }
@@ -892,17 +1028,17 @@ body.weather-rainy .windshield-wiper {
 .stepper-container {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
 }
 
 .stepper-btn {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid var(--glass-border);
     color: var(--text-primary);
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 700;
     cursor: pointer;
     display: flex;
@@ -920,12 +1056,12 @@ body.weather-rainy .windshield-wiper {
 .stepper-display {
     display: flex;
     flex-direction: column;
-    min-width: 140px;
+    min-width: 130px;
 }
 
 .stepper-num {
     font-family: var(--font-heading);
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 800;
     line-height: 1;
     color: var(--text-primary);
@@ -933,46 +1069,35 @@ body.weather-rainy .windshield-wiper {
 
 .stepper-desc {
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     color: var(--text-muted);
 }
 
 .hazard-meter-bars {
     display: flex;
-    gap: 5px;
+    gap: 4px;
     flex: 1;
 }
 
 .bar-pip {
     flex: 1;
-    height: 16px;
+    height: 14px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     transition: all 0.2s ease;
 }
 
-.bar-pip.active-green {
-    background: var(--neon-green);
-    box-shadow: 0 0 6px var(--neon-green);
-}
-.bar-pip.active-amber {
-    background: var(--neon-amber);
-    box-shadow: 0 0 6px var(--neon-amber);
-}
-.bar-pip.active-red {
-    background: var(--neon-red);
-    box-shadow: 0 0 8px var(--neon-red);
-}
+.bar-pip.active-green { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
+.bar-pip.active-amber { background: var(--neon-amber); box-shadow: 0 0 6px var(--neon-amber); }
+.bar-pip.active-red { background: var(--neon-red); box-shadow: 0 0 8px var(--neon-red); }
 
-/* ==========================================================================
-   Footer Summary & JSON Payload Inspector
-   ========================================================================== */
+/* Footer Summary */
 .cockpit-footer-summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 12px;
-    padding-top: 10px;
+    margin-top: 10px;
+    padding-top: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -986,13 +1111,13 @@ body.weather-rainy .windshield-wiper {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--neon-cyan);
-    box-shadow: 0 0 8px var(--neon-cyan);
+    background: var(--neon-green);
+    box-shadow: 0 0 8px var(--neon-green);
 }
 
 .status-text {
     font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--text-secondary);
 }
 
@@ -1001,9 +1126,9 @@ body.weather-rainy .windshield-wiper {
     border: 1px solid var(--glass-border);
     color: var(--neon-cyan);
     font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    padding: 5px 12px;
+    padding: 4px 10px;
     border-radius: 6px;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -1014,14 +1139,13 @@ body.weather-rainy .windshield-wiper {
     border-color: var(--neon-cyan);
 }
 
-/* JSON Drawer */
 .json-drawer {
     display: none;
-    margin-top: 10px;
+    margin-top: 8px;
     background: rgba(0, 0, 0, 0.65);
     border: 1px solid rgba(0, 242, 254, 0.3);
     border-radius: 10px;
-    padding: 10px 14px;
+    padding: 8px 12px;
     animation: fadeIn 0.2s ease;
 }
 
@@ -1033,70 +1157,282 @@ body.weather-rainy .windshield-wiper {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .drawer-title {
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     color: var(--neon-cyan);
     font-weight: 700;
 }
 
 .copy-notice {
     font-family: var(--font-mono);
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     color: var(--text-muted);
 }
 
 .json-code {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: #a5f3fc;
-    line-height: 1.4;
+    line-height: 1.35;
     white-space: pre-wrap;
-    max-height: 120px;
+    max-height: 110px;
     overflow-y: auto;
 }
 
 /* ==========================================================================
-   Right Panel: US Road Signs HUD
+   Right Panel: Live AI Severity Radar & Predictions
    ========================================================================== */
 .right-signs-panel {
     align-self: center;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    transition: opacity 0.3s ease;
+    gap: 10px;
 }
 
-.right-signs-panel.signs-hidden {
-    opacity: 0.3;
-    filter: grayscale(80%);
-}
-
-.road-signs-stack {
+/* Severity Outcome Card */
+.severity-card {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(0, 245, 155, 0.4);
+    border-radius: 16px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    text-align: center;
+    transition: all var(--transition-normal);
+    box-shadow: 0 0 20px rgba(0, 245, 155, 0.15);
+}
+
+.severity-card.card-low {
+    border-color: rgba(0, 245, 155, 0.5);
+    box-shadow: 0 0 20px rgba(0, 245, 155, 0.2);
+}
+.severity-card.card-med {
+    border-color: rgba(255, 183, 3, 0.6);
+    box-shadow: 0 0 25px rgba(255, 183, 3, 0.25);
+}
+.severity-card.card-high {
+    border-color: rgba(255, 0, 85, 0.7);
+    box-shadow: 0 0 30px rgba(255, 0, 85, 0.35);
+    animation: cardPulseHigh 1.8s infinite ease-in-out;
+}
+
+@keyframes cardPulseHigh {
+    0%, 100% { border-color: rgba(255, 0, 85, 0.7); }
+    50% { border-color: rgba(255, 0, 85, 1); }
+}
+
+.severity-gauge-ring-wrap {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+.severity-gauge-svg {
     width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
 }
 
-/* Speed Limit Sign (MUTCD Standard) */
-.speed-limit-sign {
+.ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 10;
+}
+
+.ring-val {
+    fill: none;
+    stroke: var(--neon-green);
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 314.15;
+    stroke-dashoffset: 60;
+    transition: stroke 0.4s ease, stroke-dashoffset 0.6s ease;
+}
+
+.severity-center-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.sev-tag {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+.sev-val-title {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--neon-green);
+    letter-spacing: 1px;
+    transition: color 0.3s ease;
+}
+
+.severity-subtext {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
+    margin-top: 6px;
+}
+
+/* Multi-Class Probability Section */
+.section-title-mini {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+.probabilities-section {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 8px 10px;
+}
+
+.prob-row {
+    margin-bottom: 6px;
+}
+
+.prob-row:last-child {
+    margin-bottom: 0;
+}
+
+.prob-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    font-family: var(--font-sans);
+    margin-bottom: 2px;
+}
+
+.prob-num {
+    font-family: var(--font-mono);
+    font-weight: 700;
+}
+
+.prob-bar-track {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.prob-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fill-low { background: linear-gradient(to right, #00c875, #00f59b); }
+.fill-med { background: linear-gradient(to right, #e09f00, #ffb703); }
+.fill-high { background: linear-gradient(to right, #cc0044, #ff0055); }
+
+/* Risk Factors Chips */
+.risk-factors-section {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 8px 10px;
+}
+
+.risk-chips-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.risk-chip {
+    font-family: var(--font-sans);
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.chip-safe {
+    background: rgba(0, 245, 155, 0.12);
+    border: 1px solid rgba(0, 245, 155, 0.3);
+    color: var(--neon-green);
+}
+
+.chip-caution {
+    background: rgba(255, 183, 3, 0.12);
+    border: 1px solid rgba(255, 183, 3, 0.3);
+    color: var(--neon-amber);
+}
+
+.chip-danger {
+    background: rgba(255, 0, 85, 0.15);
+    border: 1px solid rgba(255, 0, 85, 0.35);
+    color: var(--neon-red);
+}
+
+/* Panel Section Divider */
+.panel-section-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 2px 0;
+    position: relative;
+}
+
+.panel-section-divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.panel-section-divider span {
+    position: relative;
+    background: #0f1625;
+    padding: 0 8px;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+}
+
+/* Compact MUTCD Signs Stack */
+.road-signs-stack-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 6px;
+}
+
+.speed-limit-sign-mini {
     background: #ffffff;
-    border: 4px solid #111111;
-    border-radius: 8px;
-    width: 105px;
-    height: 130px;
-    padding: 5px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 0 0 2px #ffffff;
+    border: 3px solid #111111;
+    border-radius: 6px;
+    width: 60px;
+    height: 72px;
+    padding: 3px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
-.speed-limit-sign .sign-inner {
-    border: 2px solid #111111;
-    border-radius: 4px;
+.speed-limit-sign-mini .sign-inner {
+    border: 1px solid #111111;
+    border-radius: 3px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -1106,129 +1442,96 @@ body.weather-rainy .windshield-wiper {
     font-family: var(--font-heading);
 }
 
-.sign-text-small {
-    font-size: 0.7rem;
+.speed-limit-sign-mini .sign-text-small {
+    font-size: 0.5rem;
     font-weight: 800;
-    letter-spacing: 1.5px;
-    line-height: 1.1;
+    letter-spacing: 0.5px;
+    line-height: 1;
 }
 
-.sign-text-large {
-    font-size: 2.5rem;
+.speed-limit-sign-mini .sign-text-large {
+    font-size: 1.4rem;
     font-weight: 800;
     line-height: 0.9;
-    letter-spacing: -2px;
-    margin-top: 3px;
+    letter-spacing: -1px;
+    margin-top: 2px;
 }
 
-/* Diamond Caution Curve Sign */
-.caution-sign {
-    width: 95px;
-    height: 95px;
+.caution-sign-mini {
+    width: 55px;
+    height: 55px;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 6px 0;
 }
 
-.sign-diamond {
-    width: 85px;
-    height: 85px;
+.caution-sign-mini .sign-diamond {
+    width: 48px;
+    height: 48px;
     background: #ffcc00;
-    border: 3px solid #111111;
+    border: 2px solid #111111;
     transform: rotate(45deg);
-    border-radius: 8px;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
-.sign-curve-svg {
-    width: 42px;
-    height: 42px;
+.caution-sign-mini .sign-curve-svg {
+    width: 26px;
+    height: 26px;
     transform: rotate(-45deg);
 }
 
-.sign-subtext {
-    transform: rotate(-45deg);
-    font-family: var(--font-mono);
-    font-size: 0.44rem;
-    font-weight: 800;
-    color: #111;
-    position: absolute;
-    bottom: 11px;
-    letter-spacing: 0.5px;
-}
-
-/* Weather Advisory Sign */
-.hazard-advisory-sign {
+.hazard-advisory-sign-mini {
     background: rgba(0, 0, 0, 0.5);
     border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    width: 100%;
-    padding: 9px;
-}
-
-.advisory-inner {
+    border-radius: 8px;
+    padding: 4px 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
-    gap: 3px;
+    gap: 2px;
+    min-width: 52px;
 }
 
-.advisory-icon {
-    font-size: 1.3rem;
+.hazard-advisory-sign-mini .advisory-icon {
+    font-size: 1rem;
 }
 
-.advisory-title {
-    font-size: 0.7rem;
-    font-weight: 700;
-    font-family: var(--font-heading);
-    color: var(--text-primary);
-}
-
-.advisory-desc {
-    font-size: 0.6rem;
+.hazard-advisory-sign-mini .advisory-desc {
+    font-size: 0.55rem;
     font-family: var(--font-mono);
     color: var(--neon-cyan);
+    font-weight: 700;
 }
 
-/* School Zone Sign */
-.school-sign {
+.school-sign-mini {
     display: none;
-    width: 100%;
-}
-
-.school-sign.active {
-    display: block;
-}
-
-.school-sign-pentagon {
     background: #fff000;
-    border: 3px solid #111;
+    border: 2px solid #111;
     border-radius: 6px;
-    padding: 6px;
-    display: flex;
+    padding: 3px 5px;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+    min-width: 48px;
 }
 
-.school-icon {
-    font-size: 1.2rem;
+.school-sign-mini.active {
+    display: flex;
 }
 
-.school-text {
+.school-sign-mini .school-icon {
+    font-size: 0.9rem;
+}
+
+.school-sign-mini .school-text {
     font-family: var(--font-heading);
     font-weight: 800;
-    font-size: 0.58rem;
+    font-size: 0.48rem;
     color: #111;
-    letter-spacing: 0.5px;
 }
 
 /* ==========================================================================
@@ -1242,9 +1545,9 @@ body.weather-rainy .windshield-wiper {
     backdrop-filter: blur(18px);
     border: 1px solid var(--glass-border);
     border-radius: 14px;
-    padding: 8px 20px;
+    padding: 7px 18px;
     font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     box-shadow: var(--panel-shadow);
 }
 
@@ -1267,6 +1570,7 @@ body.weather-rainy .windshield-wiper {
 .text-neon-cyan { color: var(--neon-cyan) !important; }
 .text-neon-green { color: var(--neon-green) !important; }
 .text-accent { color: var(--neon-amber) !important; }
+.text-neon-red { color: var(--neon-red) !important; }
 
 /* Responsive Adjustments */
 @media (max-width: 1100px) {
@@ -1278,4 +1582,69 @@ body.weather-rainy .windshield-wiper {
     .left-gauge-panel, .right-signs-panel {
         display: none;
     }
+}
+
+/* Control Label Split */
+.control-label-split {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+/* Slider styling */
+.slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 10px var(--neon-cyan);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.25);
+}
+
+.slider-marks {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
+/* Minimized Cockpit Mode */
+body.cockpit-minimized #cockpit-viewport {
+    opacity: 0.22;
+    transform: scale(0.96) translateY(20px);
+    transition: all 0.35s ease;
+}
+
+body.cockpit-minimized #cockpit-viewport:hover {
+    opacity: 0.95;
+    transform: scale(1) translateY(0);
 }
