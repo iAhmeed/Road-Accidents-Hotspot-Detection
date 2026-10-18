@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+        <!-- SVG Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛣️</text></svg>">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body class="theme-daylight weather-clear mode-cockpit sev-low">
@@ -53,6 +55,11 @@
 
             <!-- Camera View & Audio Controls -->
             <div class="header-actions">
+                                <button id="btn-hotkeys-toggle" class="hud-pill-btn" title="View Keyboard Shortcuts">
+                    <span class="pill-icon">⌨️</span>
+                    <span class="pill-text">HOTKEYS</span>
+                </button>
+
                 <button id="btn-minimize-toggle" class="hud-pill-btn" title="Toggle Full Road View / Cockpit Console">
                     <span class="pill-icon">👁️</span>
                     <span class="pill-text" id="minimize-label">VIEW ROAD</span>
@@ -564,6 +571,54 @@
             </div>
         </footer>
 
+    </div>
+
+        <!-- Keyboard Shortcuts Modal -->
+    <div id="hotkeys-modal" class="modal-backdrop">
+        <div class="hotkeys-modal-card">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <span class="modal-tag">COCKPIT CONTROLS</span>
+                    <h3 class="modal-title">Keyboard Shortcuts Guide</h3>
+                </div>
+                <button id="btn-close-hotkeys" class="modal-close-btn">&times;</button>
+            </div>
+            
+            <div class="hotkeys-grid">
+                <div class="hotkey-item">
+                    <kbd>Space</kbd>
+                    <span>Trigger AI Severity Prediction</span>
+                </div>
+                <div class="hotkey-item">
+                    <div class="kbd-group"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></div>
+                    <span>Switch Presets (City / Highway / Mountain / Hotspot)</span>
+                </div>
+                <div class="hotkey-item">
+                    <kbd>V</kbd>
+                    <span>Toggle Full Road Perspective (View Road)</span>
+                </div>
+                <div class="hotkey-item">
+                    <kbd>M</kbd>
+                    <span>Toggle Synthesized Audio Ambiance</span>
+                </div>
+                <div class="hotkey-item">
+                    <kbd>C</kbd>
+                    <span>Toggle Camera View (Cockpit / Drone Radar)</span>
+                </div>
+                <div class="hotkey-item">
+                    <kbd>J</kbd>
+                    <span>Inspect Raw FastAPI JSON Payload</span>
+                </div>
+                <div class="hotkey-item">
+                    <kbd>Esc</kbd>
+                    <span>Close Shortcuts Modal</span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <span>Tip: You can use these hotkeys anytime from the driver's seat.</span>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->

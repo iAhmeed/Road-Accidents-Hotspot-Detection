@@ -1648,3 +1648,120 @@ body.cockpit-minimized #cockpit-viewport:hover {
     opacity: 0.95;
     transform: scale(1) translateY(0);
 }
+
+/* ==========================================================================
+   Hotkeys Modal & Keyboard Shortcuts
+   ========================================================================== */
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 8, 16, 0.78);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-backdrop.open {
+    display: flex;
+}
+
+.hotkeys-modal-card {
+    background: var(--bg-cockpit-header);
+    border: 1px solid var(--glass-border-glow);
+    border-radius: 20px;
+    padding: 24px 28px;
+    width: 90%;
+    max-width: 520px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 242, 254, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+}
+
+.modal-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.modal-tag {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--neon-cyan);
+    letter-spacing: 1px;
+}
+
+.modal-title {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    color: var(--text-primary);
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.6rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.modal-close-btn:hover {
+    color: var(--neon-cyan);
+}
+
+.hotkeys-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.hotkey-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+kbd {
+    background: rgba(0, 242, 254, 0.12);
+    border: 1px solid rgba(0, 242, 254, 0.4);
+    color: var(--neon-cyan);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.kbd-group {
+    display: flex;
+    gap: 4px;
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 10px;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+}

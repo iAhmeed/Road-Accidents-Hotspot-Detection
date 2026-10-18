@@ -1225,6 +1225,62 @@ document.addEventListener('DOMContentLoaded', () => {
     // Trigger Initial Prediction on Page Load
     triggerPrediction();
 
+
+    // ==========================================================================
+    // Keyboard Hotkeys Engine
+    // ==========================================================================
+    const hotkeysModal = document.getElementById('hotkeys-modal');
+    const btnHotkeysToggle = document.getElementById('btn-hotkeys-toggle');
+    const btnCloseHotkeys = document.getElementById('btn-close-hotkeys');
+
+    function openHotkeysModal() {
+        if (hotkeysModal) hotkeysModal.classList.add('open');
+    }
+
+    function closeHotkeysModal() {
+        if (hotkeysModal) hotkeysModal.classList.remove('open');
+    }
+
+    if (btnHotkeysToggle) btnHotkeysToggle.addEventListener('click', openHotkeysModal);
+    if (btnCloseHotkeys) btnCloseHotkeys.addEventListener('click', closeHotkeysModal);
+    if (hotkeysModal) {
+        hotkeysModal.addEventListener('click', (e) => {
+            if (e.target === hotkeysModal) closeHotkeysModal();
+        });
+    }
+
+    window.addEventListener('keydown', (e) => {
+        // Don't trigger if focus is on an input or slider
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+        const key = e.key.toUpperCase();
+
+        if (e.code === 'Space') {
+            e.preventDefault();
+            triggerPrediction();
+        } else if (key === '1') {
+            applyPreset(PRESETS.city);
+        } else if (key === '2') {
+            applyPreset(PRESETS.highway);
+        } else if (key === '3') {
+            applyPreset(PRESETS.mountain);
+        } else if (key === '4') {
+            applyPreset(PRESETS.blackspot);
+        } else if (key === 'V') {
+            if (btnMinimize) btnMinimize.click();
+        } else if (key === 'M') {
+            if (audioBtn) audioBtn.click();
+        } else if (key === 'C') {
+            if (cameraBtn) cameraBtn.click();
+        } else if (key === 'J') {
+            if (btnToggleJson) btnToggleJson.click();
+        } else if (e.key === 'Escape') {
+            closeHotkeysModal();
+        } else if (key === '?') {
+            openHotkeysModal();
+        }
+    });
+
     // 60 FPS Main Render Loop
     let lastTime = performance.now();
     let frameCount = 0;
