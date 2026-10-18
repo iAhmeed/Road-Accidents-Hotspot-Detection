@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel — 3D Road Telemetry & Severity AI</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="theme-daylight weather-clear mode-cockpit">
+
+    <!-- 3D Perspective Road Canvas (Full Viewport) -->
+    <div id="road-environment">
+        <canvas id="roadCanvas"></canvas>
+        <div id="fog-overlay"></div>
+        <div id="headlight-beam"></div>
+        <div id="windshield-frame">
+            <div class="windshield-sunstrip"></div>
+            <div class="windshield-wiper" id="wiper-left"></div>
+            <div class="windshield-wiper" id="wiper-right"></div>
+        </div>
+    </div>
+
+    <!-- HUD Overlay Layers -->
+    <div id="hud-interface">
+
+        <!-- Top Telemetry & Navigation Bar -->
+        <header id="telemetry-header">
+            <div class="brand-badge">
+                <span class="radar-dot pulse-online"></span>
+                <div class="brand-text">
+                    <span class="brand-title">ROAD SENTINEL AI</span>
+                    <span class="brand-subtitle">SEVERITY TELEMETRY RADAR</span>
+                </div>
+            </div>
+
+            <!-- Live GPS Coordinates & Heading -->
+            <div class="gps-telemetry-ticker">
+                <div class="ticker-item"><span class="ticker-label">LAT</span><span class="ticker-val" id="val-lat">34.0522° N</span></div>
+                <div class="ticker-separator">/</div>
+                <div class="ticker-item"><span class="ticker-label">LON</span><span class="ticker-val" id="val-lon">118.2437° W</span></div>
+                <div class="ticker-separator">/</div>
+                <div class="ticker-item"><span class="ticker-label">HDG</span><span class="ticker-val" id="val-hdg">042° NE</span></div>
+                <div class="ticker-separator">/</div>
+                <div class="ticker-item"><span class="ticker-label">SYS</span><span class="ticker-val text-neon-green" id="val-sys">FASTAPI READY</span></div>
+            </div>
+
+            <!-- Camera View & Audio Controls -->
+            <div class="header-actions">
+                <button id="btn-camera-toggle" class="hud-pill-btn active" title="Toggle Cockpit / Drone Radar View">
+                    <span class="pill-icon">🚘</span>
+                    <span class="pill-text" id="camera-label">COCKPIT VIEW</span>
+                </button>
+
+                <button id="btn-audio-toggle" class="hud-pill-btn" title="Toggle Ambient Audio Engine">
+                    <span class="pill-icon">🔇</span>
+                    <span class="pill-text" id="audio-label">AUDIO OFF</span>
+                </button>
+
+                <!-- Mini GPS Radar Scanner -->
+                <div class="mini-radar-container" title="Live Sector Radar">
+                    <canvas id="radarCanvas" width="80" height="80"></canvas>
+                    <span class="radar-scanline"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Floating Console -->
+        <main id="cockpit-viewport">
+            
+            <!-- Left Telemetry Cluster: Real-time Cockpit Gauges -->
+            <aside class="hud-panel left-gauge-panel">
+                <div class="panel-header">
+                    <span class="panel-tag">COCKPIT TELEMETRY</span>
+                    <span class="live-indicator">LIVE</span>
+                </div>
+
+                <div class="speedometer-widget">
+                    <div class="speed-dial-wrap">
+                        <svg class="speed-dial-svg" viewBox="0 0 200 130">
+                            <defs>
+                                <linearGradient id="cyan-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#00f2fe" />
+                                    <stop offset="100%" stop-color="#4facfe" />
+                                </linearGradient>
+                            </defs>
+                            <path class="dial-bg-track" d="M 20 120 A 80 80 0 0 1 180 120" />
+                            <path class="dial-val-track" id="speed-dial-arc" d="M 20 120 A 80 80 0 0 1 180 120" />
+                        </svg>
+                        <div class="speed-digital-display">
+                            <span class="speed-num" id="hud-speed-val">35</span>
+                            <span class="speed-unit">MPH</span>
+                        </div>
+                    </div>
+                    <div class="speed-label">SIMULATED SPEED</div>
+                </div>
+
+                <div class="telemetry-stats-grid">
+                    <div class="stat-cell">
+                        <span class="stat-title">SURFACE GRIP</span>
+                        <span class="stat-value text-accent" id="hud-grip">100% DRY</span>
+                    </div>
+                    <div class="stat-cell">
+                        <span class="stat-title">VISIBILITY</span>
+                        <span class="stat-value text-neon-cyan" id="hud-visibility">10 MILES</span>
+                    </div>
+                    <div class="stat-cell">
+                        <span class="stat-title">ROAD CURVATURE</span>
+                        <span class="stat-value" id="hud-curve">STRAIGHT (0°)</span>
+                    </div>
+                    <div class="stat-cell">
+                        <span class="stat-title">LANES CONFIGURED</span>
+                        <span class="stat-value" id="hud-lanes">2 ACTIVE</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center Interactive Console: Environment Simulator & Task 2 Interactive Control Deck -->
+            <section class="hud-panel center-console-panel" id="main-cockpit-console">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <span class="panel-tag">ENVIRONMENT & ROAD CONDITIONS SIMULATOR</span>
+                        <h2 class="panel-title">Interactive Road Perspective Controls</h2>
+                    </div>
+                    <span class="task-badge">TASK 2 • SCENE ENGINE</span>
+                </div>
+
+                <p class="console-desc">
+                    Explore the live 3D road environment below. Adjust speed, curvature, atmospheric lighting, and weather conditions to watch the asphalt, lane markings, horizon, and weather particles transform dynamically in real time.
+                </p>
+
+                <!-- Interactive Preview Controllers Grid -->
+                <div class="controls-matrix">
+
+                    <!-- Road Curvature Controller -->
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span class="label-icon">🛣️</span>
+                            <span>Road Curvature Geometry</span>
+                        </label>
+                        <div class="pill-selector" id="ctrl-curvature">
+                            <button class="pill-opt active" data-curve="Straight">Straight</button>
+                            <button class="pill-opt" data-curve="Slight_Curve">Slight Curve</button>
+                            <button class="pill-opt" data-curve="Moderate_Curve">Moderate Curve</button>
+                            <button class="pill-opt" data-curve="Sharp_Curve">Sharp Curve</button>
+                        </div>
+                    </div>
+
+                    <!-- Lighting / Time of Day Mode -->
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span class="label-icon">☀️</span>
+                            <span>Atmospheric Lighting & Sky</span>
+                        </label>
+                        <div class="pill-selector" id="ctrl-lighting">
+                            <button class="pill-opt active" data-light="daylight">Daylight</button>
+                            <button class="pill-opt" data-light="dim">Dusk / Dim</button>
+                            <button class="pill-opt" data-light="night">Night Headlights</button>
+                        </div>
+                    </div>
+
+                    <!-- Weather Particles Mode -->
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span class="label-icon">🌧️</span>
+                            <span>Atmospheric Weather</span>
+                        </label>
+                        <div class="pill-selector" id="ctrl-weather">
+                            <button class="pill-opt active" data-weather="clear">Clear Skies</button>
+                            <button class="pill-opt" data-weather="rainy">Rainstorm & Wet Sheen</button>
+                            <button class="pill-opt" data-weather="foggy">Dense Fog Mist</button>
+                        </div>
+                    </div>
+
+                    <!-- Speed & Lanes Row -->
+                    <div class="control-row-dual">
+                        <div class="control-group">
+                            <label class="control-label" for="ctrl-speed-slider">
+                                <span class="label-icon">⚡</span>
+                                <span>Speed Limit (<span id="slider-speed-val">35</span> MPH)</span>
+                            </label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="ctrl-speed-slider" min="25" max="70" step="5" value="35">
+                                <div class="slider-marks">
+                                    <span>25</span>
+                                    <span>35</span>
+                                    <span>45</span>
+                                    <span>60</span>
+                                    <span>70</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="label-icon">🚦</span>
+                                <span>Roadway Lanes</span>
+                            </label>
+                            <div class="pill-selector" id="ctrl-lanes">
+                                <button class="pill-opt" data-lanes="1">1 Lane</button>
+                                <button class="pill-opt active" data-lanes="2">2 Lanes</button>
+                                <button class="pill-opt" data-lanes="3">3 Lanes</button>
+                                <button class="pill-opt" data-lanes="4">4 Lanes</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Road Type Selector -->
+                    <div class="control-group">
+                        <label class="control-label">
+                            <span class="label-icon">🗺️</span>
+                            <span>Road Classification</span>
+                        </label>
+                        <div class="pill-selector" id="ctrl-road-type">
+                            <button class="pill-opt active" data-type="urban">Urban Highway</button>
+                            <button class="pill-opt" data-type="highway">Interstate Freeway</button>
+                            <button class="pill-opt" data-type="rural">Rural Mountain Road</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Task 2 Milestone Notice -->
+                <div class="milestone-box">
+                    <div class="milestone-icon">✓</div>
+                    <div class="milestone-details">
+                        <strong>Task 2 Foundation Ready to Commit:</strong>
+                        <span>3D Canvas road perspective, speed-synced dashed pavement, dynamic day/dusk/night lighting, particle weather engine, GPS radar HUD & glassmorphic cockpit framework are active and verified.</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Telemetry Panel: Authentic Road Signs HUD -->
+            <aside class="hud-panel right-signs-panel">
+                <div class="panel-header">
+                    <span class="panel-tag">MUTCD ROAD SIGNS</span>
+                    <span class="live-indicator">ACTIVE</span>
+                </div>
+
+                <div class="road-signs-stack">
+                    <!-- Speed Limit Sign -->
+                    <div class="us-road-sign speed-limit-sign">
+                        <div class="sign-inner">
+                            <div class="sign-text-small">SPEED</div>
+                            <div class="sign-text-small">LIMIT</div>
+                            <div class="sign-text-large" id="sign-speed-num">35</div>
+                        </div>
+                    </div>
+
+                    <!-- Warning Curve Sign -->
+                    <div class="us-road-sign caution-sign" id="sign-curve-box">
+                        <div class="sign-diamond">
+                            <svg class="sign-curve-svg" viewBox="0 0 100 100">
+                                <path id="svg-curve-arrow" d="M 50 80 L 50 20 L 40 32 M 50 20 L 60 32" fill="none" stroke="#111" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="sign-subtext" id="sign-curve-text">ROAD AHEAD</span>
+                        </div>
+                    </div>
+
+                    <!-- Weather / Surface Hazard Sign -->
+                    <div class="us-road-sign hazard-advisory-sign" id="sign-weather-box">
+                        <div class="advisory-inner">
+                            <span class="advisory-icon" id="advisory-icon">☀️</span>
+                            <span class="advisory-title" id="advisory-title">CONDITIONS NORMAL</span>
+                            <span class="advisory-desc" id="advisory-desc">SURFACE CLEAR</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+        </main>
+
+        <!-- Bottom Status Bar -->
+        <footer id="telemetry-footer">
+            <div class="footer-segment">
+                <span class="footer-label">ACTIVE ROAD:</span>
+                <span class="footer-value text-accent" id="lbl-active-road">Urban Corridor • Sector 4B</span>
+            </div>
+            <div class="footer-segment">
+                <span class="footer-label">WEATHER RADAR:</span>
+                <span class="footer-value" id="lbl-active-weather">Clear Visibility</span>
+            </div>
+            <div class="footer-segment">
+                <span class="footer-label">FRAME RATE:</span>
+                <span class="footer-value text-neon-green" id="lbl-fps">60 FPS</span>
+            </div>
+            <div class="footer-segment">
+                <span class="footer-label">API ENDPOINT:</span>
+                <span class="footer-value">POST /predict (Ready for Task 3 & 4)</span>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

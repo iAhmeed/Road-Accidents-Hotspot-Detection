@@ -1,0 +1,878 @@
+/* ==========================================================================
+   Sentinel Road Telemetry — Design System & Cockpit Stylesheet
+   Task 2: 3D Road Perspective, Glassmorphic HUD & Telemetry Interface
+   ========================================================================== */
+
+:root {
+    /* Color Palette */
+    --bg-space: #060911;
+    --bg-cockpit: rgba(10, 16, 28, 0.78);
+    --bg-cockpit-header: rgba(14, 22, 38, 0.88);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-border-glow: rgba(0, 242, 254, 0.25);
+    
+    /* Neon Accents */
+    --neon-cyan: #00f2fe;
+    --neon-blue: #4facfe;
+    --neon-amber: #ffb703;
+    --neon-orange: #fb8500;
+    --neon-red: #ff0055;
+    --neon-green: #00f59b;
+    --road-asphalt: #181d26;
+    --road-line-yellow: #ffc72c;
+    --road-line-white: #f8fafc;
+    
+    /* Text Hierarchy */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --text-dark: #0f172a;
+    
+    /* Fonts */
+    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-heading: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Transitions & Shadows */
+    --transition-fast: 0.18s ease;
+    --transition-normal: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    --hud-glow: 0 0 25px rgba(0, 242, 254, 0.15);
+    --panel-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Base Reset & Box Sizing */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-space);
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    user-select: none;
+}
+
+/* ==========================================================================
+   Full Viewport 3D Road Scene
+   ========================================================================== */
+#road-environment {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    overflow: hidden;
+}
+
+#roadCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Volumetric Fog Overlay */
+#fog-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    background: radial-gradient(circle at 50% 45%, rgba(200, 215, 230, 0.7) 0%, rgba(180, 195, 210, 0.45) 50%, rgba(150, 170, 190, 0.2) 100%);
+    backdrop-filter: blur(2px);
+    z-index: 2;
+}
+
+body.weather-foggy #fog-overlay {
+    opacity: 0.85;
+}
+
+/* Night Headlight Beam Projection */
+#headlight-beam {
+    position: absolute;
+    bottom: -10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90vw;
+    height: 75vh;
+    background: radial-gradient(ellipse at 50% 100%, rgba(255, 255, 235, 0.38) 0%, rgba(255, 250, 210, 0.18) 45%, rgba(255, 245, 180, 0) 75%);
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
+}
+
+body.theme-night #headlight-beam {
+    opacity: 1;
+}
+
+/* Windshield Frame & Wipers */
+#windshield-frame {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.7);
+}
+
+.windshield-sunstrip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: linear-gradient(to bottom, rgba(5, 10, 20, 0.75) 0%, rgba(5, 10, 20, 0) 100%);
+}
+
+.windshield-wiper {
+    position: absolute;
+    bottom: -15px;
+    width: 6px;
+    height: 280px;
+    background: linear-gradient(to top, #1e293b, #0f172a);
+    border-radius: 4px;
+    transform-origin: bottom center;
+    opacity: 0;
+    z-index: 5;
+    transition: opacity 0.4s ease;
+}
+
+#wiper-left {
+    left: 35%;
+    transform: rotate(-65deg);
+}
+
+#wiper-right {
+    left: 65%;
+    transform: rotate(-65deg);
+}
+
+body.weather-rainy .windshield-wiper {
+    opacity: 0.85;
+    animation: wiperCycle 2s infinite ease-in-out;
+}
+
+#wiper-right {
+    animation-delay: 0.08s !important;
+}
+
+@keyframes wiperCycle {
+    0%, 100% { transform: rotate(-70deg); }
+    50% { transform: rotate(50deg); }
+}
+
+/* ==========================================================================
+   HUD Layout Architecture
+   ========================================================================== */
+#hud-interface {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100vw;
+    height: 100vh;
+    padding: 18px 24px 14px 24px;
+    pointer-events: none;
+}
+
+#hud-interface > * {
+    pointer-events: auto;
+}
+
+/* Top Telemetry Header */
+#telemetry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-cockpit-header);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 10px 20px;
+    box-shadow: var(--panel-shadow);
+}
+
+.brand-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.radar-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--neon-green);
+    box-shadow: 0 0 10px var(--neon-green);
+}
+
+.pulse-online {
+    animation: dotPulse 2s infinite ease-in-out;
+}
+
+@keyframes dotPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.35); opacity: 0.6; }
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 1.5px;
+    color: var(--text-primary);
+}
+
+.brand-subtitle {
+    font-size: 0.68rem;
+    letter-spacing: 1px;
+    color: var(--neon-cyan);
+    font-family: var(--font-mono);
+}
+
+/* GPS Coordinates Ticker */
+.gps-telemetry-ticker {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+}
+
+.ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ticker-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.ticker-val {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.ticker-separator {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+/* Header Actions & Mini Radar */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.hud-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    border-radius: 24px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.hud-pill-btn:hover {
+    background: rgba(0, 242, 254, 0.12);
+    border-color: var(--neon-cyan);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+.hud-pill-btn.active {
+    background: rgba(0, 242, 254, 0.16);
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.25);
+}
+
+/* Mini Radar Widget */
+.mini-radar-container {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0, 20, 30, 0.7);
+    border: 1px solid var(--neon-cyan);
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+}
+
+#radarCanvas {
+    width: 100%;
+    height: 100%;
+}
+
+.radar-scanline {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 22px;
+    height: 2px;
+    background: linear-gradient(to right, rgba(0, 242, 254, 0), var(--neon-cyan));
+    transform-origin: left center;
+    animation: radarSweep 3s infinite linear;
+}
+
+@keyframes radarSweep {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Main Cockpit Viewport & Panels
+   ========================================================================== */
+#cockpit-viewport {
+    display: grid;
+    grid-template-columns: 280px 1fr 240px;
+    gap: 20px;
+    align-items: center;
+    flex: 1;
+    margin: 16px 0;
+    min-height: 0;
+}
+
+/* Generic HUD Panel Styles */
+.hud-panel {
+    background: var(--bg-cockpit);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: var(--panel-shadow);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    transition: all var(--transition-normal);
+}
+
+.hud-panel:hover {
+    border-color: var(--glass-border-glow);
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 10px;
+}
+
+.panel-tag {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+}
+
+.live-indicator {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    background: rgba(0, 245, 155, 0.15);
+    color: var(--neon-green);
+    border: 1px solid var(--neon-green);
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+}
+
+/* Left Panel: Speedometer & Telemetry */
+.left-gauge-panel {
+    align-self: center;
+}
+
+.speedometer-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    margin-bottom: 18px;
+}
+
+.speed-dial-wrap {
+    position: relative;
+    width: 170px;
+    height: 110px;
+}
+
+.speed-dial-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.dial-bg-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 12;
+    stroke-linecap: round;
+}
+
+.dial-val-track {
+    fill: none;
+    stroke: url(#cyan-gradient);
+    stroke-width: 12;
+    stroke-linecap: round;
+    stroke-dasharray: 251.2;
+    stroke-dashoffset: 140;
+    transition: stroke-dashoffset 0.4s ease;
+}
+
+.speed-digital-display {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+
+.speed-num {
+    font-family: var(--font-heading);
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-primary);
+    letter-spacing: -1px;
+}
+
+.speed-unit {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--neon-cyan);
+    letter-spacing: 2px;
+}
+
+.speed-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-top: 4px;
+}
+
+.telemetry-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.stat-cell {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-title {
+    font-size: 0.62rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    color: var(--text-primary);
+}
+
+/* Center Panel: Interactive Simulation Matrix */
+.center-console-panel {
+    max-width: 680px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.panel-title-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-title {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.task-badge {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: rgba(0, 242, 254, 0.15);
+    color: var(--neon-cyan);
+    border: 1px solid var(--neon-cyan);
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+
+.console-desc {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.controls-matrix {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-row-dual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.control-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+}
+
+.label-icon {
+    font-size: 0.9rem;
+}
+
+/* Pill Option Selectors */
+.pill-selector {
+    display: flex;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+}
+
+.pill-opt {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.pill-opt:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.pill-opt.active {
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue));
+    color: var(--text-dark);
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(0, 242, 254, 0.35);
+}
+
+/* Slider Controls */
+.slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 10px 14px;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 10px var(--neon-cyan);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.25);
+}
+
+.slider-marks {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+/* Milestone Box */
+.milestone-box {
+    margin-top: 16px;
+    background: rgba(0, 242, 254, 0.08);
+    border: 1px dashed rgba(0, 242, 254, 0.35);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.milestone-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.milestone-details {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.milestone-details strong {
+    color: var(--neon-cyan);
+    font-size: 0.82rem;
+}
+
+/* Right Panel: US Road Signs HUD */
+.right-signs-panel {
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.road-signs-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+
+/* Speed Limit Sign (MUTCD Standard) */
+.speed-limit-sign {
+    background: #ffffff;
+    border: 4px solid #111111;
+    border-radius: 8px;
+    width: 110px;
+    height: 135px;
+    padding: 6px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 0 0 2px #ffffff;
+}
+
+.speed-limit-sign .sign-inner {
+    border: 2px solid #111111;
+    border-radius: 4px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #111111;
+    font-family: var(--font-heading);
+}
+
+.sign-text-small {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    line-height: 1.1;
+}
+
+.sign-text-large {
+    font-size: 2.6rem;
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -2px;
+    margin-top: 4px;
+}
+
+/* Diamond Caution Curve Sign */
+.caution-sign {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.sign-diamond {
+    width: 90px;
+    height: 90px;
+    background: #ffcc00;
+    border: 3px solid #111111;
+    transform: rotate(45deg);
+    border-radius: 8px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.sign-curve-svg {
+    width: 44px;
+    height: 44px;
+    transform: rotate(-45deg);
+}
+
+.sign-subtext {
+    transform: rotate(-45deg);
+    font-family: var(--font-mono);
+    font-size: 0.45rem;
+    font-weight: 800;
+    color: #111;
+    position: absolute;
+    bottom: 12px;
+    letter-spacing: 0.5px;
+}
+
+/* Weather Advisory Sign */
+.hazard-advisory-sign {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    width: 100%;
+    padding: 10px;
+}
+
+.advisory-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 3px;
+}
+
+.advisory-icon {
+    font-size: 1.4rem;
+}
+
+.advisory-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    color: var(--text-primary);
+}
+
+.advisory-desc {
+    font-size: 0.62rem;
+    font-family: var(--font-mono);
+    color: var(--neon-cyan);
+}
+
+/* ==========================================================================
+   Bottom Telemetry Status Bar
+   ========================================================================== */
+#telemetry-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-cockpit-header);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 8px 20px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    box-shadow: var(--panel-shadow);
+}
+
+.footer-segment {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-label {
+    color: var(--text-muted);
+}
+
+.footer-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Neon Text Helpers */
+.text-neon-cyan { color: var(--neon-cyan) !important; }
+.text-neon-green { color: var(--neon-green) !important; }
+.text-accent { color: var(--neon-amber) !important; }
+
+/* Responsive Adjustments */
+@media (max-width: 1100px) {
+    #cockpit-viewport {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        overflow-y: auto;
+    }
+    .left-gauge-panel, .right-signs-panel {
+        display: none;
+    }
+}
