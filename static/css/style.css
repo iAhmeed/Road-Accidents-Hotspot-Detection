@@ -1,15 +1,15 @@
 /* ==========================================================================
    Sentinel Road Telemetry — Design System & Cockpit Stylesheet
-   Task 2: 3D Road Perspective, Glassmorphic HUD & Telemetry Interface
+   Task 3: Full 12-Feature Interactive Control Matrix & Cockpit Tabs
    ========================================================================== */
 
 :root {
     /* Color Palette */
     --bg-space: #060911;
-    --bg-cockpit: rgba(10, 16, 28, 0.78);
-    --bg-cockpit-header: rgba(14, 22, 38, 0.88);
+    --bg-cockpit: rgba(10, 16, 28, 0.82);
+    --bg-cockpit-header: rgba(14, 22, 38, 0.92);
     --glass-border: rgba(255, 255, 255, 0.12);
-    --glass-border-glow: rgba(0, 242, 254, 0.25);
+    --glass-border-glow: rgba(0, 242, 254, 0.35);
     
     /* Neon Accents */
     --neon-cyan: #00f2fe;
@@ -19,8 +19,6 @@
     --neon-red: #ff0055;
     --neon-green: #00f59b;
     --road-asphalt: #181d26;
-    --road-line-yellow: #ffc72c;
-    --road-line-white: #f8fafc;
     
     /* Text Hierarchy */
     --text-primary: #f8fafc;
@@ -35,12 +33,12 @@
     
     /* Transitions & Shadows */
     --transition-fast: 0.18s ease;
-    --transition-normal: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    --hud-glow: 0 0 25px rgba(0, 242, 254, 0.15);
-    --panel-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 255, 255, 0.08);
+    --transition-normal: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    --hud-glow: 0 0 25px rgba(0, 242, 254, 0.2);
+    --panel-shadow: 0 20px 45px rgba(0, 0, 0, 0.65), 0 0 1px 1px rgba(255, 255, 255, 0.08);
 }
 
-/* Base Reset & Box Sizing */
+/* Base Reset */
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -56,6 +54,23 @@ html, body {
     font-family: var(--font-sans);
     color: var(--text-primary);
     user-select: none;
+}
+
+/* Custom Scrollbar for Panes */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 242, 254, 0.3);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-cyan);
 }
 
 /* ==========================================================================
@@ -84,13 +99,13 @@ html, body {
     pointer-events: none;
     opacity: 0;
     transition: opacity 1.2s ease;
-    background: radial-gradient(circle at 50% 45%, rgba(200, 215, 230, 0.7) 0%, rgba(180, 195, 210, 0.45) 50%, rgba(150, 170, 190, 0.2) 100%);
+    background: radial-gradient(circle at 50% 45%, rgba(200, 215, 230, 0.72) 0%, rgba(180, 195, 210, 0.48) 50%, rgba(150, 170, 190, 0.2) 100%);
     backdrop-filter: blur(2px);
     z-index: 2;
 }
 
 body.weather-foggy #fog-overlay {
-    opacity: 0.85;
+    opacity: 0.88;
 }
 
 /* Night Headlight Beam Projection */
@@ -119,7 +134,7 @@ body.theme-night #headlight-beam {
     inset: 0;
     pointer-events: none;
     z-index: 4;
-    box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.7);
+    box-shadow: inset 0 0 130px rgba(0, 0, 0, 0.75);
 }
 
 .windshield-sunstrip {
@@ -128,7 +143,7 @@ body.theme-night #headlight-beam {
     left: 0;
     right: 0;
     height: 48px;
-    background: linear-gradient(to bottom, rgba(5, 10, 20, 0.75) 0%, rgba(5, 10, 20, 0) 100%);
+    background: linear-gradient(to bottom, rgba(5, 10, 20, 0.8) 0%, rgba(5, 10, 20, 0) 100%);
 }
 
 .windshield-wiper {
@@ -155,7 +170,7 @@ body.theme-night #headlight-beam {
 }
 
 body.weather-rainy .windshield-wiper {
-    opacity: 0.85;
+    opacity: 0.88;
     animation: wiperCycle 2s infinite ease-in-out;
 }
 
@@ -179,7 +194,7 @@ body.weather-rainy .windshield-wiper {
     justify-content: space-between;
     width: 100vw;
     height: 100vh;
-    padding: 18px 24px 14px 24px;
+    padding: 16px 20px 12px 20px;
     pointer-events: none;
 }
 
@@ -193,11 +208,12 @@ body.weather-rainy .windshield-wiper {
     align-items: center;
     justify-content: space-between;
     background: var(--bg-cockpit-header);
-    backdrop-filter: blur(18px);
+    backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
-    padding: 10px 20px;
+    padding: 9px 18px;
     box-shadow: var(--panel-shadow);
+    gap: 12px;
 }
 
 .brand-badge {
@@ -237,7 +253,7 @@ body.weather-rainy .windshield-wiper {
 }
 
 .brand-subtitle {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     letter-spacing: 1px;
     color: var(--neon-cyan);
     font-family: var(--font-mono);
@@ -247,13 +263,13 @@ body.weather-rainy .windshield-wiper {
 .gps-telemetry-ticker {
     display: flex;
     align-items: center;
-    gap: 12px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 8px;
     padding: 6px 14px;
     font-family: var(--font-mono);
-    font-size: 0.78rem;
+    font-size: 0.74rem;
 }
 
 .ticker-item {
@@ -280,7 +296,7 @@ body.weather-rainy .windshield-wiper {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .hud-pill-btn {
@@ -290,10 +306,10 @@ body.weather-rainy .windshield-wiper {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     color: var(--text-secondary);
-    padding: 8px 14px;
-    border-radius: 24px;
+    padding: 7px 12px;
+    border-radius: 20px;
     font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -316,8 +332,8 @@ body.weather-rainy .windshield-wiper {
 /* Mini Radar Widget */
 .mini-radar-container {
     position: relative;
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     background: rgba(0, 20, 30, 0.7);
     border: 1px solid var(--neon-cyan);
@@ -334,7 +350,7 @@ body.weather-rainy .windshield-wiper {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 22px;
+    width: 21px;
     height: 2px;
     background: linear-gradient(to right, rgba(0, 242, 254, 0), var(--neon-cyan));
     transform-origin: left center;
@@ -351,11 +367,11 @@ body.weather-rainy .windshield-wiper {
    ========================================================================== */
 #cockpit-viewport {
     display: grid;
-    grid-template-columns: 280px 1fr 240px;
-    gap: 20px;
+    grid-template-columns: 270px 1fr 240px;
+    gap: 18px;
     align-items: center;
     flex: 1;
-    margin: 16px 0;
+    margin: 12px 0;
     min-height: 0;
 }
 
@@ -368,8 +384,9 @@ body.weather-rainy .windshield-wiper {
     box-shadow: var(--panel-shadow);
     display: flex;
     flex-direction: column;
-    padding: 20px;
+    padding: 18px;
     transition: all var(--transition-normal);
+    max-height: calc(100vh - 130px);
 }
 
 .hud-panel:hover {
@@ -380,9 +397,9 @@ body.weather-rainy .windshield-wiper {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 10px;
+    padding-bottom: 8px;
 }
 
 .panel-tag {
@@ -415,7 +432,7 @@ body.weather-rainy .windshield-wiper {
     flex-direction: column;
     align-items: center;
     position: relative;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 }
 
 .speed-dial-wrap {
@@ -472,7 +489,7 @@ body.weather-rainy .windshield-wiper {
 }
 
 .speed-label {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: var(--text-muted);
     font-family: var(--font-mono);
     margin-top: 4px;
@@ -481,43 +498,52 @@ body.weather-rainy .windshield-wiper {
 .telemetry-stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 8px;
 }
 
 .stat-cell {
     background: rgba(0, 0, 0, 0.35);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 10px;
-    padding: 10px;
+    padding: 8px 10px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 .stat-title {
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     font-family: var(--font-mono);
     color: var(--text-muted);
     letter-spacing: 0.5px;
 }
 
 .stat-value {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 700;
     font-family: var(--font-heading);
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Center Panel: Interactive Simulation Matrix */
+/* ==========================================================================
+   Center Panel: 12-Feature Interactive Control Matrix
+   ========================================================================== */
 .center-console-panel {
-    max-width: 680px;
+    max-width: 720px;
     margin: 0 auto;
     width: 100%;
-}
-
-.panel-title-group {
     display: flex;
     flex-direction: column;
+}
+
+.panel-pretitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 2px;
 }
 
 .panel-title {
@@ -529,38 +555,135 @@ body.weather-rainy .windshield-wiper {
 
 .task-badge {
     font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: 700;
     background: rgba(0, 242, 254, 0.15);
     color: var(--neon-cyan);
     border: 1px solid var(--neon-cyan);
-    padding: 3px 10px;
+    padding: 2px 8px;
     border-radius: 12px;
 }
 
-.console-desc {
-    font-size: 0.84rem;
+/* Presets Toolbar */
+.presets-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.presets-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.preset-pill {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-secondary);
-    line-height: 1.5;
-    margin-bottom: 16px;
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.preset-pill:hover {
+    background: rgba(0, 242, 254, 0.14);
+    border-color: var(--neon-cyan);
+    color: var(--text-primary);
+}
+
+.preset-pill.active {
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue));
+    color: var(--text-dark);
+    font-weight: 700;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(0, 242, 254, 0.35);
+}
+
+/* Cockpit Category Tabs Navigation */
+.cockpit-tabs-nav {
+    display: flex;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+    margin-bottom: 14px;
+}
+
+.cockpit-tab-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-heading);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.cockpit-tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.cockpit-tab-btn.active {
+    background: rgba(0, 242, 254, 0.16);
+    color: var(--neon-cyan);
+    border: 1px solid rgba(0, 242, 254, 0.4);
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+}
+
+/* Tab Viewport & Panes */
+.tab-contents-viewport {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+    min-height: 220px;
+}
+
+.tab-pane {
+    display: none;
+    animation: fadeIn 0.24s ease;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .controls-matrix {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 
 .control-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .control-row-dual {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 12px;
 }
 
 .control-label {
@@ -570,7 +693,15 @@ body.weather-rainy .windshield-wiper {
     font-size: 0.78rem;
     font-weight: 600;
     color: var(--text-primary);
-    font-family: var(--font-sans);
+}
+
+.control-label code {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--neon-cyan);
+    background: rgba(0, 242, 254, 0.08);
+    padding: 1px 5px;
+    border-radius: 4px;
 }
 
 .label-icon {
@@ -580,11 +711,11 @@ body.weather-rainy .windshield-wiper {
 /* Pill Option Selectors */
 .pill-selector {
     display: flex;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 4px;
-    gap: 4px;
+    border-radius: 10px;
+    padding: 3px;
+    gap: 3px;
 }
 
 .pill-opt {
@@ -593,9 +724,9 @@ body.weather-rainy .windshield-wiper {
     border: none;
     color: var(--text-secondary);
     font-family: var(--font-sans);
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 600;
-    padding: 8px 10px;
+    padding: 8px 8px;
     border-radius: 8px;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -615,102 +746,340 @@ body.weather-rainy .windshield-wiper {
     box-shadow: 0 4px 12px rgba(0, 242, 254, 0.35);
 }
 
-/* Slider Controls */
-.slider-wrapper {
+.speed-selector .pill-opt {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 0.84rem;
+}
+
+/* ==========================================================================
+   Tab 3: Switches Grid & Prior Accidents Stepper
+   ========================================================================== */
+.switches-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.switch-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    padding: 10px 14px;
+    transition: all var(--transition-fast);
+}
+
+.switch-card:hover {
+    border-color: rgba(0, 242, 254, 0.3);
+    background: rgba(0, 242, 254, 0.03);
+}
+
+.switch-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
+}
+
+.switch-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.switch-subtitle {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+/* Toggle Switch Component */
+.hud-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.hud-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.15);
+    transition: 0.25s;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: 0.25s;
+    border-radius: 50%;
+}
+
+.hud-switch input:checked + .switch-slider {
+    background-color: var(--neon-cyan);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+}
+
+.hud-switch input:checked + .switch-slider:before {
+    transform: translateX(20px);
+    background-color: var(--text-dark);
+}
+
+/* Prior Reported Accidents Stepper & Hazard Meter */
+.accident-counter-group {
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 10px 14px;
+    padding: 12px 16px;
+    margin-top: 4px;
 }
 
-input[type="range"] {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.15);
-    outline: none;
-    cursor: pointer;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--neon-cyan);
-    box-shadow: 0 0 10px var(--neon-cyan);
-    cursor: pointer;
-    transition: transform var(--transition-fast);
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-    transform: scale(1.25);
-}
-
-.slider-marks {
+.counter-header {
     display: flex;
+    align-items: center;
     justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.hazard-level-badge {
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+}
+
+.level-safe {
+    background: rgba(0, 245, 155, 0.15);
+    color: var(--neon-green);
+    border: 1px solid var(--neon-green);
+}
+.level-moderate {
+    background: rgba(255, 183, 3, 0.18);
+    color: var(--neon-amber);
+    border: 1px solid var(--neon-amber);
+}
+.level-danger {
+    background: rgba(255, 0, 85, 0.2);
+    color: var(--neon-red);
+    border: 1px solid var(--neon-red);
+    animation: pulseDanger 1.5s infinite;
+}
+
+@keyframes pulseDanger {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.03); }
+}
+
+.stepper-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stepper-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.stepper-btn:hover {
+    background: var(--neon-cyan);
+    color: var(--text-dark);
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.35);
+}
+
+.stepper-display {
+    display: flex;
+    flex-direction: column;
+    min-width: 140px;
+}
+
+.stepper-num {
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-primary);
+}
+
+.stepper-desc {
     font-family: var(--font-mono);
     font-size: 0.65rem;
     color: var(--text-muted);
 }
 
-/* Milestone Box */
-.milestone-box {
-    margin-top: 16px;
-    background: rgba(0, 242, 254, 0.08);
-    border: 1px dashed rgba(0, 242, 254, 0.35);
-    border-radius: 12px;
-    padding: 12px 16px;
+.hazard-meter-bars {
     display: flex;
-    align-items: center;
-    gap: 14px;
+    gap: 5px;
+    flex: 1;
 }
 
-.milestone-icon {
-    width: 28px;
-    height: 28px;
+.bar-pip {
+    flex: 1;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.bar-pip.active-green {
+    background: var(--neon-green);
+    box-shadow: 0 0 6px var(--neon-green);
+}
+.bar-pip.active-amber {
+    background: var(--neon-amber);
+    box-shadow: 0 0 6px var(--neon-amber);
+}
+.bar-pip.active-red {
+    background: var(--neon-red);
+    box-shadow: 0 0 8px var(--neon-red);
+}
+
+/* ==========================================================================
+   Footer Summary & JSON Payload Inspector
+   ========================================================================== */
+.cockpit-footer-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.summary-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-indicator-dot {
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--neon-cyan);
-    color: var(--text-dark);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 0.9rem;
-    flex-shrink: 0;
+    box-shadow: 0 0 8px var(--neon-cyan);
 }
 
-.milestone-details {
-    display: flex;
-    flex-direction: column;
-    font-size: 0.78rem;
+.status-text {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
     color: var(--text-secondary);
-    line-height: 1.4;
 }
 
-.milestone-details strong {
+.json-inspect-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border);
     color: var(--neon-cyan);
-    font-size: 0.82rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
 }
 
-/* Right Panel: US Road Signs HUD */
+.json-inspect-btn:hover {
+    background: rgba(0, 242, 254, 0.15);
+    border-color: var(--neon-cyan);
+}
+
+/* JSON Drawer */
+.json-drawer {
+    display: none;
+    margin-top: 10px;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(0, 242, 254, 0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    animation: fadeIn 0.2s ease;
+}
+
+.json-drawer.open {
+    display: block;
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.drawer-title {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--neon-cyan);
+    font-weight: 700;
+}
+
+.copy-notice {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
+.json-code {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: #a5f3fc;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+/* ==========================================================================
+   Right Panel: US Road Signs HUD
+   ========================================================================== */
 .right-signs-panel {
     align-self: center;
     display: flex;
     flex-direction: column;
     align-items: center;
+    transition: opacity 0.3s ease;
+}
+
+.right-signs-panel.signs-hidden {
+    opacity: 0.3;
+    filter: grayscale(80%);
 }
 
 .road-signs-stack {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     width: 100%;
 }
 
@@ -719,9 +1088,9 @@ input[type="range"]::-webkit-slider-thumb:hover {
     background: #ffffff;
     border: 4px solid #111111;
     border-radius: 8px;
-    width: 110px;
-    height: 135px;
-    padding: 6px;
+    width: 105px;
+    height: 130px;
+    padding: 5px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 0 0 2px #ffffff;
 }
 
@@ -738,34 +1107,34 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .sign-text-small {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 800;
     letter-spacing: 1.5px;
     line-height: 1.1;
 }
 
 .sign-text-large {
-    font-size: 2.6rem;
+    font-size: 2.5rem;
     font-weight: 800;
     line-height: 0.9;
     letter-spacing: -2px;
-    margin-top: 4px;
+    margin-top: 3px;
 }
 
 /* Diamond Caution Curve Sign */
 .caution-sign {
-    width: 100px;
-    height: 100px;
+    width: 95px;
+    height: 95px;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 10px 0;
+    margin: 6px 0;
 }
 
 .sign-diamond {
-    width: 90px;
-    height: 90px;
+    width: 85px;
+    height: 85px;
     background: #ffcc00;
     border: 3px solid #111111;
     transform: rotate(45deg);
@@ -778,19 +1147,19 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .sign-curve-svg {
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
     transform: rotate(-45deg);
 }
 
 .sign-subtext {
     transform: rotate(-45deg);
     font-family: var(--font-mono);
-    font-size: 0.45rem;
+    font-size: 0.44rem;
     font-weight: 800;
     color: #111;
     position: absolute;
-    bottom: 12px;
+    bottom: 11px;
     letter-spacing: 0.5px;
 }
 
@@ -800,7 +1169,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border: 1px solid var(--glass-border);
     border-radius: 12px;
     width: 100%;
-    padding: 10px;
+    padding: 9px;
 }
 
 .advisory-inner {
@@ -812,20 +1181,54 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .advisory-icon {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
 }
 
 .advisory-title {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     font-family: var(--font-heading);
     color: var(--text-primary);
 }
 
 .advisory-desc {
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     font-family: var(--font-mono);
     color: var(--neon-cyan);
+}
+
+/* School Zone Sign */
+.school-sign {
+    display: none;
+    width: 100%;
+}
+
+.school-sign.active {
+    display: block;
+}
+
+.school-sign-pentagon {
+    background: #fff000;
+    border: 3px solid #111;
+    border-radius: 6px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.school-icon {
+    font-size: 1.2rem;
+}
+
+.school-text {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 0.58rem;
+    color: #111;
+    letter-spacing: 0.5px;
 }
 
 /* ==========================================================================
@@ -869,7 +1272,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 @media (max-width: 1100px) {
     #cockpit-viewport {
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 12px;
         overflow-y: auto;
     }
     .left-gauge-panel, .right-signs-panel {

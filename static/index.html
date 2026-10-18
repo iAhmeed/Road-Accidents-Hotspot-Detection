@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sentinel — 3D Road Telemetry & Severity AI</title>
+    <title>Sentinel — Road Telemetry & Severity AI</title>
     <!-- Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,7 +45,9 @@
                 <div class="ticker-separator">/</div>
                 <div class="ticker-item"><span class="ticker-label">HDG</span><span class="ticker-val" id="val-hdg">042° NE</span></div>
                 <div class="ticker-separator">/</div>
-                <div class="ticker-item"><span class="ticker-label">SYS</span><span class="ticker-val text-neon-green" id="val-sys">FASTAPI READY</span></div>
+                <div class="ticker-item"><span class="ticker-label">TIME</span><span class="ticker-val text-neon-cyan" id="val-time">08:45 AM (MORNING)</span></div>
+                <div class="ticker-separator">/</div>
+                <div class="ticker-item"><span class="ticker-label">SYS</span><span class="ticker-val text-neon-green" id="val-sys">FASTAPI 200 OK</span></div>
             </div>
 
             <!-- Camera View & Audio Controls -->
@@ -95,13 +97,13 @@
                             <span class="speed-unit">MPH</span>
                         </div>
                     </div>
-                    <div class="speed-label">SIMULATED SPEED</div>
+                    <div class="speed-label">SPEED LIMIT LOCK</div>
                 </div>
 
                 <div class="telemetry-stats-grid">
                     <div class="stat-cell">
                         <span class="stat-title">SURFACE GRIP</span>
-                        <span class="stat-value text-accent" id="hud-grip">100% DRY</span>
+                        <span class="stat-value text-neon-green" id="hud-grip">100% DRY</span>
                     </div>
                     <div class="stat-cell">
                         <span class="stat-title">VISIBILITY</span>
@@ -115,129 +117,292 @@
                         <span class="stat-title">LANES CONFIGURED</span>
                         <span class="stat-value" id="hud-lanes">2 ACTIVE</span>
                     </div>
+                    <div class="stat-cell">
+                        <span class="stat-title">PRIOR ACCIDENTS</span>
+                        <span class="stat-value text-neon-green" id="hud-accident-stat">0 (CLEAN)</span>
+                    </div>
+                    <div class="stat-cell">
+                        <span class="stat-title">SIGNAGE STATUS</span>
+                        <span class="stat-value text-accent" id="hud-sign-stat">POSTED</span>
+                    </div>
                 </div>
             </aside>
 
-            <!-- Center Interactive Console: Environment Simulator & Task 2 Interactive Control Deck -->
+            <!-- Center Interactive Console: 12-Feature Cockpit Matrix -->
             <section class="hud-panel center-console-panel" id="main-cockpit-console">
                 <div class="panel-header">
                     <div class="panel-title-group">
-                        <span class="panel-tag">ENVIRONMENT & ROAD CONDITIONS SIMULATOR</span>
-                        <h2 class="panel-title">Interactive Road Perspective Controls</h2>
+                        <div class="panel-pretitle">
+                            <span class="panel-tag">COCKPIT CONTROL MATRIX</span>
+                            <span class="task-badge">TASK 3 • 12 FEATURES</span>
+                        </div>
+                        <h2 class="panel-title">Roadway & Hazard Configuration</h2>
                     </div>
-                    <span class="task-badge">TASK 2 • SCENE ENGINE</span>
+                    
+                    <!-- Quick Presets Dropdown/Pills -->
+                    <div class="presets-toolbar">
+                        <span class="presets-label">PRESETS:</span>
+                        <button class="preset-pill active" data-preset="city" title="Standard urban daytime drive">🏙️ City</button>
+                        <button class="preset-pill" data-preset="highway" title="Night interstate travel">⚡ Highway</button>
+                        <button class="preset-pill" data-preset="mountain" title="Rainy rural winding road">🌧️ Mountain</button>
+                        <button class="preset-pill" data-preset="blackspot" title="High risk accident hotspot">🚨 Hotspot</button>
+                    </div>
                 </div>
 
-                <p class="console-desc">
-                    Explore the live 3D road environment below. Adjust speed, curvature, atmospheric lighting, and weather conditions to watch the asphalt, lane markings, horizon, and weather particles transform dynamically in real time.
-                </p>
+                <!-- Category Tabs Navigation -->
+                <nav class="cockpit-tabs-nav">
+                    <button class="cockpit-tab-btn active" data-tab="tab-road">
+                        <span class="tab-icon">🛣️</span> Road & Geometry
+                    </button>
+                    <button class="cockpit-tab-btn" data-tab="tab-env">
+                        <span class="tab-icon">⛅</span> Atmosphere & Time
+                    </button>
+                    <button class="cockpit-tab-btn" data-tab="tab-safety">
+                        <span class="tab-icon">🛡️</span> Safety & History
+                    </button>
+                </nav>
 
-                <!-- Interactive Preview Controllers Grid -->
-                <div class="controls-matrix">
+                <!-- Tab Contents Container -->
+                <div class="tab-contents-viewport">
 
-                    <!-- Road Curvature Controller -->
-                    <div class="control-group">
-                        <label class="control-label">
-                            <span class="label-icon">🛣️</span>
-                            <span>Road Curvature Geometry</span>
-                        </label>
-                        <div class="pill-selector" id="ctrl-curvature">
-                            <button class="pill-opt active" data-curve="Straight">Straight</button>
-                            <button class="pill-opt" data-curve="Slight_Curve">Slight Curve</button>
-                            <button class="pill-opt" data-curve="Moderate_Curve">Moderate Curve</button>
-                            <button class="pill-opt" data-curve="Sharp_Curve">Sharp Curve</button>
-                        </div>
-                    </div>
+                    <!-- TAB 1: ROAD & GEOMETRY (Features 1-4) -->
+                    <div class="tab-pane active" id="tab-road">
+                        <div class="controls-matrix">
 
-                    <!-- Lighting / Time of Day Mode -->
-                    <div class="control-group">
-                        <label class="control-label">
-                            <span class="label-icon">☀️</span>
-                            <span>Atmospheric Lighting & Sky</span>
-                        </label>
-                        <div class="pill-selector" id="ctrl-lighting">
-                            <button class="pill-opt active" data-light="daylight">Daylight</button>
-                            <button class="pill-opt" data-light="dim">Dusk / Dim</button>
-                            <button class="pill-opt" data-light="night">Night Headlights</button>
-                        </div>
-                    </div>
-
-                    <!-- Weather Particles Mode -->
-                    <div class="control-group">
-                        <label class="control-label">
-                            <span class="label-icon">🌧️</span>
-                            <span>Atmospheric Weather</span>
-                        </label>
-                        <div class="pill-selector" id="ctrl-weather">
-                            <button class="pill-opt active" data-weather="clear">Clear Skies</button>
-                            <button class="pill-opt" data-weather="rainy">Rainstorm & Wet Sheen</button>
-                            <button class="pill-opt" data-weather="foggy">Dense Fog Mist</button>
-                        </div>
-                    </div>
-
-                    <!-- Speed & Lanes Row -->
-                    <div class="control-row-dual">
-                        <div class="control-group">
-                            <label class="control-label" for="ctrl-speed-slider">
-                                <span class="label-icon">⚡</span>
-                                <span>Speed Limit (<span id="slider-speed-val">35</span> MPH)</span>
-                            </label>
-                            <div class="slider-wrapper">
-                                <input type="range" id="ctrl-speed-slider" min="25" max="70" step="5" value="35">
-                                <div class="slider-marks">
-                                    <span>25</span>
-                                    <span>35</span>
-                                    <span>45</span>
-                                    <span>60</span>
-                                    <span>70</span>
+                            <!-- 1. Road Classification -->
+                            <div class="control-group">
+                                <label class="control-label">
+                                    <span class="label-icon">🗺️</span>
+                                    <span>1. Road Classification (<code>road_type</code>)</span>
+                                </label>
+                                <div class="pill-selector" id="ctrl-road-type">
+                                    <button class="pill-opt active" data-val="urban">Urban Corridor</button>
+                                    <button class="pill-opt" data-val="highway">Interstate Highway</button>
+                                    <button class="pill-opt" data-val="rural">Rural Route</button>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="control-group">
-                            <label class="control-label">
-                                <span class="label-icon">🚦</span>
-                                <span>Roadway Lanes</span>
-                            </label>
-                            <div class="pill-selector" id="ctrl-lanes">
-                                <button class="pill-opt" data-lanes="1">1 Lane</button>
-                                <button class="pill-opt active" data-lanes="2">2 Lanes</button>
-                                <button class="pill-opt" data-lanes="3">3 Lanes</button>
-                                <button class="pill-opt" data-lanes="4">4 Lanes</button>
+                            <!-- 2. Curvature Geometry -->
+                            <div class="control-group">
+                                <label class="control-label">
+                                    <span class="label-icon">↪️</span>
+                                    <span>2. Road Curvature (<code>curvature_bin</code>)</span>
+                                </label>
+                                <div class="pill-selector" id="ctrl-curvature">
+                                    <button class="pill-opt active" data-val="Straight">Straight (0°)</button>
+                                    <button class="pill-opt" data-val="Slight_Curve">Slight (+15°)</button>
+                                    <button class="pill-opt" data-val="Moderate_Curve">Moderate (+30°)</button>
+                                    <button class="pill-opt" data-val="Sharp_Curve">Sharp (+45°)</button>
+                                </div>
                             </div>
+
+                            <!-- 3 & 4 Dual Row: Speed Limit & Lanes -->
+                            <div class="control-row-dual">
+                                <!-- 3. Speed Limit -->
+                                <div class="control-group">
+                                    <label class="control-label">
+                                        <span class="label-icon">⚡</span>
+                                        <span>3. Speed Limit (<code>speed_limit</code>)</span>
+                                    </label>
+                                    <div class="pill-selector speed-selector" id="ctrl-speed-pills">
+                                        <button class="pill-opt" data-val="25">25</button>
+                                        <button class="pill-opt active" data-val="35">35</button>
+                                        <button class="pill-opt" data-val="45">45</button>
+                                        <button class="pill-opt" data-val="60">60</button>
+                                        <button class="pill-opt" data-val="70">70</button>
+                                    </div>
+                                </div>
+
+                                <!-- 4. Lanes Count -->
+                                <div class="control-group">
+                                    <label class="control-label">
+                                        <span class="label-icon">🚦</span>
+                                        <span>4. Roadway Lanes (<code>num_lanes</code>)</span>
+                                    </label>
+                                    <div class="pill-selector" id="ctrl-lanes">
+                                        <button class="pill-opt" data-val="1">1 Lane</button>
+                                        <button class="pill-opt active" data-val="2">2 Lanes</button>
+                                        <button class="pill-opt" data-val="3">3 Lanes</button>
+                                        <button class="pill-opt" data-val="4">4 Lanes</button>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
-                    <!-- Road Type Selector -->
-                    <div class="control-group">
-                        <label class="control-label">
-                            <span class="label-icon">🗺️</span>
-                            <span>Road Classification</span>
-                        </label>
-                        <div class="pill-selector" id="ctrl-road-type">
-                            <button class="pill-opt active" data-type="urban">Urban Highway</button>
-                            <button class="pill-opt" data-type="highway">Interstate Freeway</button>
-                            <button class="pill-opt" data-type="rural">Rural Mountain Road</button>
+                    <!-- TAB 2: ATMOSPHERE & DIURNAL (Features 5-7) -->
+                    <div class="tab-pane" id="tab-env">
+                        <div class="controls-matrix">
+
+                            <!-- 5. Lighting / Sky -->
+                            <div class="control-group">
+                                <label class="control-label">
+                                    <span class="label-icon">☀️</span>
+                                    <span>5. Ambient Lighting (<code>lighting</code>)</span>
+                                </label>
+                                <div class="pill-selector" id="ctrl-lighting">
+                                    <button class="pill-opt active" data-val="daylight">☀️ Daylight</button>
+                                    <button class="pill-opt" data-val="dim">🌅 Dusk / Dim</button>
+                                    <button class="pill-opt" data-val="night">🌙 Night Headlights</button>
+                                </div>
+                            </div>
+
+                            <!-- 6. Meteorological Weather -->
+                            <div class="control-group">
+                                <label class="control-label">
+                                    <span class="label-icon">🌧️</span>
+                                    <span>6. Weather Conditions (<code>weather</code>)</span>
+                                </label>
+                                <div class="pill-selector" id="ctrl-weather">
+                                    <button class="pill-opt active" data-val="clear">☀️ Clear Skies</button>
+                                    <button class="pill-opt" data-val="rainy">🌧️ Rainstorm & Wet Sheen</button>
+                                    <button class="pill-opt" data-val="foggy">🌫️ Dense Volumetric Fog</button>
+                                </div>
+                            </div>
+
+                            <!-- 7. Time of Day -->
+                            <div class="control-group">
+                                <label class="control-label">
+                                    <span class="label-icon">⏰</span>
+                                    <span>7. Diurnal Period (<code>time_of_day</code>)</span>
+                                </label>
+                                <div class="pill-selector" id="ctrl-time-of-day">
+                                    <button class="pill-opt active" data-val="morning">🌅 Morning (06:00–12:00)</button>
+                                    <button class="pill-opt" data-val="afternoon">☀️ Afternoon (12:00–18:00)</button>
+                                    <button class="pill-opt" data-val="evening">🌆 Evening (18:00–00:00)</button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: SAFETY, CONDITIONS & HISTORY (Features 8-12) -->
+                    <div class="tab-pane" id="tab-safety">
+                        <div class="controls-matrix">
+
+                            <!-- Features 8, 9, 10, 11: 4 Boolean Toggles Grid -->
+                            <div class="switches-grid">
+                                
+                                <!-- 8. Road Signs Present -->
+                                <div class="switch-card" id="card-road-signs">
+                                    <div class="switch-info">
+                                        <span class="switch-title">8. Road Signs Present</span>
+                                        <span class="switch-subtitle">Regulatory speed & warning signs</span>
+                                    </div>
+                                    <label class="hud-switch">
+                                        <input type="checkbox" id="switch-road-signs" checked>
+                                        <span class="switch-slider"></span>
+                                    </label>
+                                </div>
+
+                                <!-- 9. Public Road -->
+                                <div class="switch-card" id="card-public-road">
+                                    <div class="switch-info">
+                                        <span class="switch-title">9. Public Roadway</span>
+                                        <span class="switch-subtitle">Maintained state highway network</span>
+                                    </div>
+                                    <label class="hud-switch">
+                                        <input type="checkbox" id="switch-public-road" checked>
+                                        <span class="switch-slider"></span>
+                                    </label>
+                                </div>
+
+                                <!-- 10. Holiday Traffic -->
+                                <div class="switch-card" id="card-holiday">
+                                    <div class="switch-info">
+                                        <span class="switch-title">10. Holiday Surge</span>
+                                        <span class="switch-subtitle">Elevated recreational road density</span>
+                                    </div>
+                                    <label class="hud-switch">
+                                        <input type="checkbox" id="switch-holiday">
+                                        <span class="switch-slider"></span>
+                                    </label>
+                                </div>
+
+                                <!-- 11. School Season -->
+                                <div class="switch-card" id="card-school-season">
+                                    <div class="switch-info">
+                                        <span class="switch-title">11. School Season</span>
+                                        <span class="switch-subtitle">Bus stops & pedestrian crossings</span>
+                                    </div>
+                                    <label class="hud-switch">
+                                        <input type="checkbox" id="switch-school-season" checked>
+                                        <span class="switch-slider"></span>
+                                    </label>
+                                </div>
+
+                            </div>
+
+                            <!-- 12. Prior Reported Accidents (0 to 7 Stepper) -->
+                            <div class="control-group accident-counter-group">
+                                <div class="counter-header">
+                                    <label class="control-label">
+                                        <span class="label-icon">⚠️</span>
+                                        <span>12. Historical Incident Frequency (<code>num_reported_accidents</code>)</span>
+                                    </label>
+                                    <span class="hazard-level-badge level-safe" id="badge-hazard-level">SAFE CORRIDOR</span>
+                                </div>
+
+                                <div class="stepper-container">
+                                    <button class="stepper-btn" id="btn-accident-dec" title="Decrease prior accidents">−</button>
+                                    
+                                    <div class="stepper-display">
+                                        <span class="stepper-num" id="stepper-accident-num">0</span>
+                                        <span class="stepper-desc" id="stepper-accident-desc">0 Reported Collisions</span>
+                                    </div>
+
+                                    <button class="stepper-btn" id="btn-accident-inc" title="Increase prior accidents">+</button>
+
+                                    <!-- Visual Hazard Level Meter (0 to 7) -->
+                                    <div class="hazard-meter-bars" id="hazard-meter-bars">
+                                        <span class="bar-pip active"></span>
+                                        <span class="bar-pip"></span>
+                                        <span class="bar-pip"></span>
+                                        <span class="bar-pip"></span>
+                                        <span class="bar-pip"></span>
+                                        <span class="bar-pip"></span>
+                                        <span class="bar-pip"></span>
+                                        <span class="bar-pip"></span>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
                 </div>
 
-                <!-- Task 2 Milestone Notice -->
-                <div class="milestone-box">
-                    <div class="milestone-icon">✓</div>
-                    <div class="milestone-details">
-                        <strong>Task 2 Foundation Ready to Commit:</strong>
-                        <span>3D Canvas road perspective, speed-synced dashed pavement, dynamic day/dusk/night lighting, particle weather engine, GPS radar HUD & glassmorphic cockpit framework are active and verified.</span>
+                <!-- Footer Summary Bar with Payload Inspector Toggle -->
+                <div class="cockpit-footer-summary">
+                    <div class="summary-status">
+                        <span class="status-indicator-dot"></span>
+                        <span class="status-text">12/12 Model Features Bound & Validated</span>
+                    </div>
+
+                    <div class="summary-actions">
+                        <button class="json-inspect-btn" id="btn-toggle-json">
+                            <span>{ }</span> Inspect JSON
+                        </button>
                     </div>
                 </div>
+
+                <!-- Collapsible Real-Time JSON Payload Drawer -->
+                <div class="json-drawer" id="json-drawer">
+                    <div class="drawer-header">
+                        <span class="drawer-title">FASTAPI POST /predict PAYLOAD</span>
+                        <span class="copy-notice" id="copy-notice">Click payload to copy</span>
+                    </div>
+                    <pre class="json-code" id="json-code-preview"></pre>
+                </div>
+
             </section>
 
             <!-- Right Telemetry Panel: Authentic Road Signs HUD -->
-            <aside class="hud-panel right-signs-panel">
+            <aside class="hud-panel right-signs-panel" id="right-signs-panel">
                 <div class="panel-header">
                     <span class="panel-tag">MUTCD ROAD SIGNS</span>
-                    <span class="live-indicator">ACTIVE</span>
+                    <span class="live-indicator" id="indicator-sign-state">ACTIVE</span>
                 </div>
 
                 <div class="road-signs-stack">
@@ -268,6 +433,14 @@
                             <span class="advisory-desc" id="advisory-desc">SURFACE CLEAR</span>
                         </div>
                     </div>
+
+                    <!-- School Zone Sign (Conditional) -->
+                    <div class="us-road-sign school-sign" id="sign-school-box">
+                        <div class="school-sign-pentagon">
+                            <span class="school-icon">🚸</span>
+                            <span class="school-text">SCHOOL ZONE</span>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
@@ -288,8 +461,8 @@
                 <span class="footer-value text-neon-green" id="lbl-fps">60 FPS</span>
             </div>
             <div class="footer-segment">
-                <span class="footer-label">API ENDPOINT:</span>
-                <span class="footer-value">POST /predict (Ready for Task 3 & 4)</span>
+                <span class="footer-label">API TARGET:</span>
+                <span class="footer-value text-neon-cyan">POST /predict (FastAPI Ready)</span>
             </div>
         </footer>
 
